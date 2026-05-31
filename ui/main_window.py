@@ -1,9 +1,105 @@
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout
+from PyQt6.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QStackedWidget
+)
 from PyQt6.QtCore import QSize
 from ui.theme import Colors
 from ui.topbar import Topbar
 from ui.subbar import Subbar
 from ui.widgets.status_bar import StatusBar
+from ui.pages.library_page import LibraryPage
+
+
+# Données de test
+SAMPLE_PACKAGES = [
+    {
+        "title":      "Spider-Man Miles Morales",
+        "type":       "game",
+        "content_id": "EP9000-CUSA24030_00-SPIDERMANMM00001",
+        "size_bytes": 45_432_123_456,
+        "size_str":   "42.3 Go",
+        "firmware":   "9.00",
+        "region":     "Europe",
+        "filepath":   "F:/PS4/Spider-Man.pkg",
+        "filename":   "Spider-Man.pkg",
+    },
+    {
+        "title":      "God of War Ragnarök",
+        "type":       "game",
+        "content_id": "EP9000-CUSA34674_00-GOWR000000000001",
+        "size_bytes": 96_821_145_600,
+        "size_str":   "90.1 Go",
+        "firmware":   "11.00",
+        "region":     "Europe",
+        "filepath":   "F:/PS4/GoW.pkg",
+        "filename":   "GoW.pkg",
+    },
+    {
+        "title":      "Ghost of Tsushima — Iki Island",
+        "type":       "dlc",
+        "content_id": "EP9000-CUSA15398_00-GOTDLC000000001",
+        "size_bytes": 8_700_000_000,
+        "size_str":   "8.1 Go",
+        "firmware":   None,
+        "region":     "Europe",
+        "filepath":   "F:/PS4/GoT_DLC.pkg",
+        "filename":   "GoT_DLC.pkg",
+    },
+    {
+        "title":      "Elden Ring — Update v1.10",
+        "type":       "update",
+        "content_id": "EP9000-CUSA28842_00-ELDENRING000001",
+        "size_bytes": 3_435_973_836,
+        "size_str":   "3.2 Go",
+        "firmware":   None,
+        "region":     "Europe",
+        "filepath":   "F:/PS4/EldenRing_Update.pkg",
+        "filename":   "EldenRing_Update.pkg",
+    },
+    {
+        "title":      "Bloodborne",
+        "type":       "backport",
+        "content_id": "EP9000-CUSE01264_00-BLOODBORNE00001",
+        "size_bytes": 24_268_374_016,
+        "size_str":   "22.6 Go",
+        "firmware":   "9.00",
+        "region":     "Europe",
+        "filepath":   "F:/PS4/Bloodborne_BP.pkg",
+        "filename":   "Bloodborne_BP.pkg",
+    },
+    {
+        "title":      "Sekiro: Shadows Die Twice",
+        "type":       "backport",
+        "content_id": "EP9000-CUSA13610_00-SEKIRO0000000001",
+        "size_bytes": 15_032_385_536,
+        "size_str":   "14.0 Go",
+        "firmware":   "9.00",
+        "region":     "Europe",
+        "filepath":   "F:/PS4/Sekiro_BP.pkg",
+        "filename":   "Sekiro_BP.pkg",
+    },
+    {
+        "title":      "Cyberpunk 2077 — Phantom Liberty",
+        "type":       "dlc",
+        "content_id": "EP9000-CUSA18534_00-CP77DLC00000001",
+        "size_bytes": 19_537_895_424,
+        "size_str":   "18.2 Go",
+        "firmware":   None,
+        "region":     "Europe",
+        "filepath":   "F:/PS4/CP77_DLC.pkg",
+        "filename":   "CP77_DLC.pkg",
+    },
+    {
+        "title":      "The Last of Us Part II",
+        "type":       "game",
+        "content_id": "EP9000-CUSA07820_00-THELASTOFUS2001",
+        "size_bytes": 82_063_114_240,
+        "size_str":   "76.4 Go",
+        "firmware":   "7.55",
+        "region":     "Europe",
+        "filepath":   "F:/PS4/TLOU2.pkg",
+        "filename":   "TLOU2.pkg",
+    },
+]
 
 
 class MainWindow(QMainWindow):
@@ -11,6 +107,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._init_window()
         self._init_ui()
+        self._load_sample_data()
 
     def _init_window(self):
         self.setWindowTitle("PS4 PKGVault")
@@ -30,28 +127,87 @@ class MainWindow(QMainWindow):
         self.topbar = Topbar()
         self.topbar.tab_changed.connect(self._on_tab_changed)
         self.topbar.add_requested.connect(self._on_add_folder)
+        self.topbar.search_changed.connect(self._on_search)
+        self.topbar.view_toggled.connect(self._on_view_toggle)
         self._layout.addWidget(self.topbar)
 
         # Subbar
         self.subbar = Subbar()
-        self.subbar.update_count(0)
         self.subbar.filter_changed.connect(self._on_filter_changed)
         self.subbar.sort_changed.connect(self._on_sort_changed)
         self._layout.addWidget(self.subbar)
+
+        # Pages
+        self._stack = QStackedWidget()
+        self._stack.setStyleSheet(f"background: {Colors.BG_APP};")
+        self._layout.addWidget(self._stack)
+
+        # Library page
+        self.library_page = LibraryPage()
+        self.library_page.pkg_selected.connect(self._on_pkg_selected)
+        self.library_page.pkg_deleted.connect(self._on_pkg_deleted)
+        self.library_page.stats_updated.connect(self._on_stats_updated)
+        self._stack.addWidget(self.library_page)
 
         # StatusBar
         self.status_bar = StatusBar()
         self.setStatusBar(self.status_bar)
         self.status_bar.set_ready()
 
+    def _load_sample_data(self):
+        """Charge les données de test."""
+        self.library_page.load_packages(SAMPLE_PACKAGES)
+        self.status_bar.update_stats(SAMPLE_PACKAGES)
+        self.subbar.update_count(
+            len(SAMPLE_PACKAGES),
+            self.library_page.get_total_size_str()
+        )
+        self.status_bar.set_message(
+            f"{len(SAMPLE_PACKAGES)} PKG chargés", "ok"
+        )
+
+    # ------------------------------------------------------------------ #
+    #  Slots                                                               #
+    # ------------------------------------------------------------------ #
+
     def _on_tab_changed(self, key: str):
         self.subbar.setVisible(key == "library")
+        print(f"Tab: {key}")
 
     def _on_add_folder(self):
         print("Ajouter un dossier")
 
+    def _on_search(self, text: str):
+        self.library_page.set_search(text)
+        self._update_count()
+
     def _on_filter_changed(self, key: str):
-        print(f"Filtre: {key}")
+        self.library_page.set_filter(key)
+        self._update_count()
 
     def _on_sort_changed(self, key: str):
-        print(f"Tri: {key}")
+        self.library_page.set_sort(
+            key,
+            self.subbar.sort_ascending
+        )
+
+    def _on_view_toggle(self):
+        print("Toggle vue")
+
+    def _on_pkg_selected(self, pkg_data: dict):
+        print(f"PKG sélectionné : {pkg_data.get('title')}")
+
+    def _on_pkg_deleted(self, filepath: str):
+        self.status_bar.set_message(
+            "Fichier supprimé", "warn"
+        )
+        self._update_count()
+
+    def _on_stats_updated(self, counts: dict):
+        self.status_bar.update_counts(counts)
+
+    def _update_count(self):
+        self.subbar.update_count(
+            self.library_page.get_filtered_count(),
+            self.library_page.get_total_size_str()
+        )
