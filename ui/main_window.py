@@ -7,9 +7,10 @@ from ui.topbar import Topbar
 from ui.subbar import Subbar
 from ui.widgets.status_bar import StatusBar
 from ui.pages.library_page import LibraryPage
+from ui.pages.detail_page import DetailPage
+from ui.pages.folders_page import FoldersPage
 
 
-# Données de test
 SAMPLE_PACKAGES = [
     {
         "title":      "Spider-Man Miles Morales",
@@ -101,6 +102,21 @@ SAMPLE_PACKAGES = [
     },
 ]
 
+SAMPLE_FOLDERS = {
+    "F:/PS4 JailBreak/Games": {
+        "game": 3, "dlc": 2, "update": 1,
+        "backport": 2, "total": 8,
+        "size_str": "297 Go",
+        "date_added": "2026-05-31"
+    },
+    "E:/Backups/PKG": {
+        "game": 1, "dlc": 0, "update": 0,
+        "backport": 1, "total": 2,
+        "size_str": "36 Go",
+        "date_added": "2026-05-31"
+    },
+}
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -137,7 +153,7 @@ class MainWindow(QMainWindow):
         self.subbar.sort_changed.connect(self._on_sort_changed)
         self._layout.addWidget(self.subbar)
 
-        # Pages
+        # Stack de pages
         self._stack = QStackedWidget()
         self._stack.setStyleSheet(f"background: {Colors.BG_APP};")
         self._layout.addWidget(self._stack)
@@ -148,6 +164,19 @@ class MainWindow(QMainWindow):
         self.library_page.pkg_deleted.connect(self._on_pkg_deleted)
         self.library_page.stats_updated.connect(self._on_stats_updated)
         self._stack.addWidget(self.library_page)
+
+        # Detail page
+        self.detail_page = DetailPage()
+        self.detail_page.back_requested.connect(self._on_detail_back)
+        self.detail_page.relation_clicked.connect(self._on_pkg_selected)
+        self._stack.addWidget(self.detail_page)
+
+        # Folders page
+        self.folders_page = FoldersPage()
+        self.folders_page.add_requested.connect(self._on_add_folder)
+        self.folders_page.scan_requested.connect(self._on_rescan_folder)
+        self.folders_page.delete_requested.connect(self._on_delete_folder)
+        self._stack.addWidget(self.folders_page)
 
         # StatusBar
         self.status_bar = StatusBar()
@@ -165,17 +194,50 @@ class MainWindow(QMainWindow):
         self.status_bar.set_message(
             f"{len(SAMPLE_PACKAGES)} PKG chargés", "ok"
         )
+        self.folders_page.set_folders(
+            list(SAMPLE_FOLDERS.keys()),
+            SAMPLE_FOLDERS
+        )
+
+    # ------------------------------------------------------------------ #
+    #  Navigation                                                          #
+    # ------------------------------------------------------------------ #
+
+    def _on_tab_changed(self, key: str):
+        self.subbar.setVisible(key == "library")
+        if key == "library":
+            self._stack.setCurrentWidget(self.library_page)
+        elif key == "folders":
+            self._stack.setCurrentWidget(self.folders_page)
+        elif key == "settings":
+            print("Settings — à venir")
+        elif key == "credits":
+            print("Credits — à venir")
+
+    def _on_pkg_selected(self, pkg_data: dict):
+        """Ouvre la page de détail."""
+        self.detail_page.show_pkg(pkg_data, [])
+        self._stack.setCurrentWidget(self.detail_page)
+        self.subbar.setVisible(False)
+
+    def _on_detail_back(self):
+        """Retour à la bibliothèque."""
+        self._stack.setCurrentWidget(self.library_page)
+        self.subbar.setVisible(True)
+        self.topbar.set_active_tab("library")
 
     # ------------------------------------------------------------------ #
     #  Slots                                                               #
     # ------------------------------------------------------------------ #
 
-    def _on_tab_changed(self, key: str):
-        self.subbar.setVisible(key == "library")
-        print(f"Tab: {key}")
-
     def _on_add_folder(self):
         print("Ajouter un dossier")
+
+    def _on_rescan_folder(self, path: str):
+        print(f"Rescan : {path}")
+
+    def _on_delete_folder(self, path: str):
+        print(f"Supprimer : {path}")
 
     def _on_search(self, text: str):
         self.library_page.set_search(text)
@@ -187,20 +249,14 @@ class MainWindow(QMainWindow):
 
     def _on_sort_changed(self, key: str):
         self.library_page.set_sort(
-            key,
-            self.subbar.sort_ascending
+            key, self.subbar.sort_ascending
         )
 
     def _on_view_toggle(self):
         print("Toggle vue")
 
-    def _on_pkg_selected(self, pkg_data: dict):
-        print(f"PKG sélectionné : {pkg_data.get('title')}")
-
     def _on_pkg_deleted(self, filepath: str):
-        self.status_bar.set_message(
-            "Fichier supprimé", "warn"
-        )
+        self.status_bar.set_message("Fichier supprimé", "warn")
         self._update_count()
 
     def _on_stats_updated(self, counts: dict):
@@ -211,3 +267,10 @@ class MainWindow(QMainWindow):
             self.library_page.get_filtered_count(),
             self.library_page.get_total_size_str()
         )
+
+    # ------------------------------------------------------------------ #
+    #  Fermeture                                                           #
+    # ------------------------------------------------------------------ #
+
+    def closeEvent(self, event):
+        event.accept()
