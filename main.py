@@ -1,16 +1,28 @@
-# This is a sample Python script.
-
-# Press Maj+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+import sys
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QFont
+from ui.main_window import MainWindow
+from ui.theme import APP_STYLE, Fonts
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+def main():
+    app = QApplication(sys.argv)
+    app.setApplicationName("PS4 PKGVault")
+    app.setApplicationVersion("1.0.0")
+    app.setOrganizationName("RC Informatique")
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    # Police globale Segoe UI
+    font = QFont(Fonts.FAMILY, Fonts.SIZE_MD)
+    app.setFont(font)
+
+    # Thème global
+    app.setStyleSheet(APP_STYLE)
+
+    window = MainWindow()
+    window.show()
+
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
