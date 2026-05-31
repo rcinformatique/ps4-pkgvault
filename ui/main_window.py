@@ -10,6 +10,7 @@ from ui.pages.library_page import LibraryPage
 from ui.pages.detail_page import DetailPage
 from ui.pages.folders_page import FoldersPage
 from ui.pages.settings_page import SettingsPage
+from ui.pages.credits_page import CreditsPage
 
 
 SAMPLE_PACKAGES = [
@@ -190,6 +191,10 @@ class MainWindow(QMainWindow):
         )
         self._stack.addWidget(self.settings_page)
 
+        # Credits page
+        self.credits_page = CreditsPage()
+        self._stack.addWidget(self.credits_page)
+
         # StatusBar
         self.status_bar = StatusBar()
         self.setStatusBar(self.status_bar)
@@ -224,7 +229,7 @@ class MainWindow(QMainWindow):
         elif key == "settings":
             self._stack.setCurrentWidget(self.settings_page)
         elif key == "credits":
-            print("Credits — à venir")
+            self._stack.setCurrentWidget(self.credits_page)
 
     def _on_settings_saved(self, data: dict):
         print(f"Paramètres sauvegardés : {data}")
