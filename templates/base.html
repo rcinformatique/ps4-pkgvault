@@ -1,83 +1,495 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+<meta charset="UTF-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --bg-app:        #f0f2f5;
-      --bg-white:      #ffffff;
-      --bg-input:      #f5f7fa;
-      --bg-hover:      #f8f9ff;
-      --accent:        #0067c0;
-      --accent-light:  #e8f0fe;
-      --accent-border: #b8d0f5;
-      --accent-hover:  #005ba3;
-      --text-primary:  #1a1a2e;
-      --text-secondary:#666666;
-      --text-muted:    #aaaaaa;
-      --text-hint:     #cccccc;
-      --border:        #e4e7ec;
-      --border-light:  #eef0f4;
-      --border-strong: #dde1e8;
-      --success:       #107c10;
-      --warning:       #ca5010;
-      --error:         #e05a5a;
-      --radius-sm:     5px;
-      --radius-md:     8px;
-      --radius-lg:     12px;
-      --radius-xl:     16px;
-      --shadow-sm:     0 1px 3px rgba(0,0,0,0.08);
-      --shadow-md:     0 4px 12px rgba(0,0,0,0.1);
-      --shadow-lg:     0 8px 24px rgba(0,0,0,0.12);
-    }
+:root {
+  --bg:        #f0f2f5;
+  --white:     #ffffff;
+  --input:     #f5f7fa;
+  --hover:     #f8f9ff;
+  --accent:    #0067c0;
+  --accent-h:  #005ba3;
+  --accent-l:  #e8f0fe;
+  --accent-b:  #b8d0f5;
+  --tp:        #1a1a2e;
+  --ts:        #666666;
+  --tm:        #aaaaaa;
+  --th:        #cccccc;
+  --border:    #e4e7ec;
+  --border-l:  #eef0f4;
+  --border-s:  #dde1e8;
+  --success:   #107c10;
+  --warning:   #ca5010;
+  --error:     #e05a5a;
+  --r-sm:      5px;
+  --r-md:      8px;
+  --r-lg:      12px;
+  --r-xl:      16px;
+}
 
-    html, body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      font-size: 14px;
-      background: var(--bg-app);
-      color: var(--text-primary);
-      line-height: 1.5;
-      height: 100%;
-    }
+html, body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--tp);
+  height: 100%;
+  overflow: hidden;
+}
 
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg-app); }
-    ::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--border-strong);
-    }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-s); }
 
-    /* Utilitaires */
-    .flex   { display: flex; }
-    .flex-col { display: flex; flex-direction: column; }
-    .gap-4  { gap: 4px; }
-    .gap-8  { gap: 8px; }
-    .gap-12 { gap: 12px; }
-    .gap-16 { gap: 16px; }
-    .gap-24 { gap: 24px; }
-    .items-center { align-items: center; }
-    .items-start  { align-items: flex-start; }
-    .justify-between { justify-content: space-between; }
-    .flex-1  { flex: 1; }
-    .wrap    { flex-wrap: wrap; }
-    .text-center { text-align: center; }
-    .w-full  { width: 100%; }
+/* ===== LAYOUT ===== */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
 
-    {% block extra_styles %}{% endblock %}
-  </style>
+/* ===== TOPBAR ===== */
+.topbar {
+  background: var(--white);
+  height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tp);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.logo .accent { color: var(--accent); }
+.logo .icon { font-size: 20px; }
+
+.nav-tabs { display: flex; gap: 2px; }
+
+.nav-tab {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--tm);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  transition: all 0.15s;
+}
+.nav-tab:hover { background: var(--input); color: var(--ts); }
+.nav-tab.active {
+  background: var(--accent-l);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.search-wrap {
+  margin-left: auto;
+  background: var(--input);
+  border: 1px solid var(--border-s);
+  border-radius: 20px;
+  padding: 5px 13px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 200px;
+}
+.search-wrap input {
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 12px;
+  color: var(--tp);
+  width: 100%;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+.search-wrap input::placeholder { color: var(--th); }
+
+.btn-add {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--r-md);
+  color: #fff;
+  font-size: 12px;
+  padding: 7px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.btn-add:hover { background: var(--accent-h); }
+
+.btn-icon {
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--ts);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.15s;
+}
+.btn-icon:hover { background: var(--accent-l); color: var(--accent); border-color: var(--accent-b); }
+
+/* ===== SUBBAR ===== */
+.subbar {
+  background: var(--white);
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 7px;
+  border-bottom: 1px solid var(--border-l);
+  flex-shrink: 0;
+}
+
+.filter-pill {
+  font-size: 11px;
+  padding: 4px 13px;
+  border-radius: 14px;
+  border: 1px solid var(--border-s);
+  color: var(--ts);
+  cursor: pointer;
+  background: var(--white);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  transition: all 0.15s;
+}
+.filter-pill:hover { border-color: var(--accent); color: var(--accent); }
+.filter-pill.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.sort-wrap {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sort-label { font-size: 11px; color: var(--th); }
+.sort-btn {
+  font-size: 11px;
+  color: var(--tm);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+}
+.sort-btn:hover { color: var(--accent); background: var(--accent-l); }
+.sort-btn.active { color: var(--accent); font-weight: 600; }
+
+.count-lbl { font-size: 11px; color: var(--th); margin-left: 8px; }
+
+/* ===== PAGE CONTENT ===== */
+.page-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== STATUSBAR ===== */
+.statusbar {
+  background: var(--white);
+  height: 26px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  border-top: 1px solid var(--border-l);
+  flex-shrink: 0;
+}
+.sb-item {
+  font-size: 10px;
+  color: var(--th);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.sb-sep { color: var(--border); font-size: 12px; }
+.sb-msg {
+  font-size: 10px;
+  color: var(--accent);
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 15px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  cursor: pointer;
+  border: none;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-h); }
+.btn-secondary {
+  background: var(--input);
+  color: var(--ts);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger {
+  background: #fff5f5;
+  color: var(--error);
+  border: 1px solid #ffd0d0;
+}
+.btn-danger:hover { background: #ffe0e0; }
+
+/* ===== SECTION CARD ===== */
+.section-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+.section-header {
+  padding: 14px 18px 0;
+}
+.section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--th);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.section-body { padding: 0 18px 18px; }
+
+/* ===== PAGE TITLES ===== */
+.page-header {
+  padding: 24px 24px 0;
+}
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--tp);
+  margin-bottom: 4px;
+}
+.page-subtitle {
+  font-size: 13px;
+  color: var(--tm);
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+}
+.empty-icon { font-size: 64px; }
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--tm);
+}
+.empty-sub {
+  font-size: 14px;
+  color: var(--th);
+  text-align: center;
+}
+
+{% block extra_styles %}{% endblock %}
+</style>
 </head>
 <body>
-  {% block content %}{% endblock %}
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo">
+      <span class="icon">📦</span>
+      PS4 PKG<span class="accent">Vault</span>
+    </div>
+    <button id="back-btn"
+  onclick="pybridge.go_back()"
+  style="
+    display: none;
+    background: #f5f7fa;
+    border: 1px solid #e4e7ec;
+    border-radius: 8px;
+    color: #666;
+    font-size: 13px;
+    padding: 5px 13px;
+    cursor: pointer;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    transition: all 0.15s;
+    white-space: nowrap;
+  "
+  onmouseover="this.style.borderColor='#0067c0'; this.style.color='#0067c0';"
+  onmouseout="this.style.borderColor='#e4e7ec'; this.style.color='#666';">
+  ← Retour
+</button>
+
+<nav class="nav-tabs">
+      <button class="nav-tab {% if active_page == 'library' %}active{% endif %}"
+        onclick="navigate('library')">
+        🗂️ Bibliothèque
+      </button>
+      <button class="nav-tab {% if active_page == 'folders' %}active{% endif %}"
+        onclick="navigate('folders')">
+        📁 Dossiers
+      </button>
+      <button class="nav-tab {% if active_page == 'settings' %}active{% endif %}"
+        onclick="navigate('settings')">
+        ⚙️ Paramètres
+      </button>
+      <button class="nav-tab {% if active_page == 'credits' %}active{% endif %}"
+        onclick="navigate('credits')">
+        ℹ️ À propos
+      </button>
+    </nav>
+    <div class="search-wrap">
+      <span style="color:var(--th); font-size:14px;">🔍</span>
+      <input type="text" id="search-input"
+        placeholder="Rechercher un titre, CUSA…"
+        oninput="onSearch(this.value)" />
+    </div>
+    <button class="btn-add" onclick="pybridge.add_folder()">
+      ➕ Ajouter un dossier
+    </button>
+    <div class="btn-icon" onclick="pybridge.toggle_view()" title="Vue liste / grille">☰</div>
+  </div>
+
+  <!-- SUBBAR (library only) -->
+  {% if active_page == 'library' %}
+  <div class="subbar" id="subbar">
+    <button class="filter-pill {% if active_filter == 'all' %}active{% endif %}"
+      onclick="setFilter('all')">Tous</button>
+    <button class="filter-pill {% if active_filter == 'game' %}active{% endif %}"
+      onclick="setFilter('game')">BASE</button>
+    <button class="filter-pill {% if active_filter == 'dlc' %}active{% endif %}"
+      onclick="setFilter('dlc')">DLC</button>
+    <button class="filter-pill {% if active_filter == 'update' %}active{% endif %}"
+      onclick="setFilter('update')">UPDATE</button>
+    <button class="filter-pill {% if active_filter == 'backport' %}active{% endif %}"
+      onclick="setFilter('backport')">BACKPORT</button>
+    <div class="sort-wrap">
+      <span class="sort-label">Trier :</span>
+      <button class="sort-btn {% if active_sort == 'title' %}active{% endif %}"
+        onclick="setSort('title')">Nom</button>
+      <button class="sort-btn {% if active_sort == 'size' %}active{% endif %}"
+        onclick="setSort('size')">Taille</button>
+      <button class="sort-btn {% if active_sort == 'type' %}active{% endif %}"
+        onclick="setSort('type')">Type</button>
+      <button class="sort-btn {% if active_sort == 'date' %}active{% endif %}"
+        onclick="setSort('date')">Date</button>
+    </div>
+    <span class="count-lbl" id="count-lbl">{{ count_str }}</span>
+  </div>
+  {% endif %}
+
+  <!-- PAGE CONTENT -->
+  <div class="page-content" id="page-content">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- STATUSBAR -->
+  <div class="statusbar">
+    <div class="sb-item">
+      <span class="sb-dot" style="background:#0067c0;"></span>
+      Jeux {{ stats.game }}
+    </div>
+    <span class="sb-sep">|</span>
+    <div class="sb-item">
+      <span class="sb-dot" style="background:#107c10;"></span>
+      DLC {{ stats.dlc }}
+    </div>
+    <span class="sb-sep">|</span>
+    <div class="sb-item">
+      <span class="sb-dot" style="background:#0078d4;"></span>
+      Updates {{ stats.update }}
+    </div>
+    <span class="sb-sep">|</span>
+    <div class="sb-item">
+      <span class="sb-dot" style="background:#ca5010;"></span>
+      Backports {{ stats.backport }}
+    </div>
+    <span class="sb-sep">|</span>
+    <div class="sb-item">{{ stats.total_size }}</div>
+    <div class="sb-msg" id="sb-msg">✅ {{ status_msg }}</div>
+  </div>
+
+</div>
+
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script>
+var pybridge = null;
+
+new QWebChannel(qt.webChannelTransport, function(channel) {
+  pybridge = channel.objects.pybridge;
+});
+
+function navigate(page) {
+  if (pybridge) pybridge.navigate(page);
+}
+
+function showBackBtn(show) {
+  var btn = document.getElementById('back-btn');
+  if (btn) btn.style.display = show ? 'inline-flex' : 'none';
+}
+
+function onSearch(text) {
+  if (pybridge) pybridge.search(text);
+}
+
+function setFilter(key) {
+  if (pybridge) pybridge.set_filter(key);
+}
+
+function setSort(key) {
+  if (pybridge) pybridge.set_sort(key);
+}
+
+{% block extra_scripts %}{% endblock %}
+</script>
 </body>
 </html>

@@ -1,10 +1,152 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block extra_styles %}
+.folders-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.folder-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: border-color 0.15s;
+}
+.folder-card:hover { border-color: var(--accent); }
+
+.folder-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-lg);
+  background: var(--accent-l);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.folder-info { flex: 1; }
+.folder-path {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tp);
+  margin-bottom: 3px;
+}
+.folder-meta {
+  font-size: 12px;
+  color: var(--tm);
+  margin-bottom: 8px;
+}
+.folder-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.folder-pill {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--input);
+  border: 1px solid var(--border);
+  color: var(--ts);
+}
+
+.folder-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+.folder-size {
+  font-size: 13px;
+  color: var(--tm);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.add-folder-card {
+  background: var(--white);
+  border: 2px dashed var(--accent-b);
+  border-radius: var(--r-xl);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+.add-folder-card:hover {
+  background: var(--accent-l);
+  border-color: var(--accent);
+}
+{% endblock %}
+
+{% block content %}
+<div class="folders-scroll">
+
+  <div class="page-header" style="padding: 0 0 8px;">
+    <div class="page-title">Dossiers</div>
+    <div class="page-subtitle">
+      Gérez les dossiers contenant vos fichiers PKG.
+      PKGVault scanne automatiquement tous les sous-dossiers.
+    </div>
+  </div>
+
+  {% if folders %}
+    {% for folder in folders %}
+    <div class="folder-card">
+      <div class="folder-icon">📁</div>
+      <div class="folder-info">
+        <div class="folder-path">{{ folder.path }}</div>
+        <div class="folder-meta">
+          {{ folder.total }} fichier{{ 's' if folder.total > 1 else '' }}
+          {% if folder.date_added %} · Ajouté le {{ folder.date_added[:10] }}{% endif %}
+        </div>
+        <div class="folder-pills">
+          <span class="folder-pill">🎮 {{ folder.game }} Jeux</span>
+          <span class="folder-pill">🧩 {{ folder.dlc }} DLC</span>
+          <span class="folder-pill">⬆ {{ folder.update }} Updates</span>
+          <span class="folder-pill">⏮ {{ folder.backport }} Backports</span>
+        </div>
+      </div>
+      <div class="folder-actions">
+        <div class="folder-size">{{ folder.size_str }}</div>
+        <button class="btn btn-secondary"
+          onclick="pybridge.rescan_folder('{{ folder.path|e }}')">
+          🔄 Rescanner
+        </button>
+        <button class="btn btn-danger"
+          onclick="pybridge.delete_folder('{{ folder.path|e }}')">
+          🗑️ Retirer
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📁</div>
+      <div class="empty-title">Aucun dossier ajouté</div>
+      <div class="empty-sub">Cliquez sur ➕ Ajouter un dossier pour commencer</div>
+    </div>
+  {% endif %}
+
+  <div class="add-folder-card"
+    onclick="pybridge.add_folder()">
+    ➕ Ajouter un dossier PKG
+  </div>
+
+</div>
+{% endblock %}

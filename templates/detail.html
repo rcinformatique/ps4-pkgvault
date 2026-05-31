@@ -1,103 +1,106 @@
 {% extends "base.html" %}
 
 {% block extra_styles %}
-/* ===== TYPE COLORS ===== */
-.type-game     { --type-bg: #dce8f8; --type-badge: #0067c0; --type-text: #fff; }
-.type-dlc      { --type-bg: #d4ecd4; --type-badge: #107c10; --type-text: #fff; }
-.type-update   { --type-bg: #d4e8f8; --type-badge: #0078d4; --type-text: #fff; }
-.type-backport { --type-bg: #f8e8d4; --type-badge: #ca5010; --type-text: #fff; }
 
-/* ===== LAYOUT ===== */
-.page {
-  min-height: 100vh;
-  background: var(--bg-app);
-  padding-bottom: 40px;
+.detail-wrap {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ===== HERO ===== */
 .hero {
-  background: var(--bg-white);
-  border-bottom: 1px solid var(--border-light);
-  padding: 28px 32px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border-l);
+  padding: 32px 32px 28px;
   display: flex;
-  gap: 28px;
+  gap: 32px;
   align-items: flex-start;
+  flex-shrink: 0;
 }
 
 .cover-wrap {
   flex-shrink: 0;
-  width: 160px;
+  width: 180px;
 }
 
-.cover {
-  width: 160px;
-  height: 214px;
-  border-radius: var(--radius-lg);
+.cover-img {
+  width: 180px;
+  height: 240px;
+  border-radius: 12px;
   object-fit: cover;
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-md);
+  display: block;
 }
 
 .cover-placeholder {
-  width: 160px;
-  height: 214px;
-  border-radius: var(--radius-lg);
-  background: var(--type-bg);
+  width: 180px;
+  height: 240px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 56px;
-  box-shadow: var(--shadow-md);
+  font-size: 64px;
 }
 
-.hero-right {
+.cover-ph-game     { background: linear-gradient(145deg, #d8e8f5, #eaf2fb); }
+.cover-ph-dlc      { background: linear-gradient(145deg, #d0ecd0, #e8f5e8); }
+.cover-ph-update   { background: linear-gradient(145deg, #d0e4f5, #e8f2fb); }
+.cover-ph-backport { background: linear-gradient(145deg, #f5e4d0, #faf0e8); }
+
+.hero-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  padding-top: 4px;
 }
 
 .badge-row {
   display: flex;
-  gap: 8px;
+  gap: 7px;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .type-badge {
-  background: var(--type-badge);
-  color: var(--type-text);
   font-size: 11px;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 4px 10px;
   border-radius: 5px;
   letter-spacing: 0.5px;
 }
 
+.badge-game     { background: #0067c0; color: #fff; }
+.badge-dlc      { background: #107c10; color: #fff; }
+.badge-update   { background: #0078d4; color: #fff; }
+.badge-backport { background: #ca5010; color: #fff; }
+
 .tag {
-  background: var(--bg-input);
-  color: var(--text-secondary);
+  font-size: 12px;
+  color: var(--ts);
+  background: var(--input);
   border: 1px solid var(--border);
   border-radius: 5px;
-  font-size: 12px;
   padding: 3px 10px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 5px;
 }
 
 .game-title {
-  font-size: 26px;
+  font-size: 28px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--tp);
   line-height: 1.2;
-  margin-top: 4px;
 }
 
 .game-subtitle {
   font-size: 14px;
-  color: var(--text-muted);
+  color: var(--tm);
+  margin-top: -4px;
 }
 
 .quick-row {
@@ -105,34 +108,32 @@
   gap: 20px;
   flex-wrap: wrap;
   align-items: center;
-  margin-top: 2px;
 }
 
 .quick-item {
+  font-size: 13px;
+  color: var(--ts);
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text-secondary);
+  gap: 5px;
 }
 
-.quick-item.rating {
-  color: var(--warning);
-  font-weight: 600;
-  font-size: 14px;
+.quick-rating {
+  color: #ca5010;
+  font-weight: 700;
+  font-size: 15px;
 }
 
 .dev-pub {
   font-size: 13px;
-  color: var(--text-muted);
+  color: var(--tm);
 }
 
-/* ===== ACTIONS ===== */
 .actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 8px;
+  padding-top: 4px;
 }
 
 .btn {
@@ -140,39 +141,22 @@
   align-items: center;
   gap: 7px;
   padding: 8px 16px;
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   font-size: 13px;
   font-family: 'Segoe UI', Arial, sans-serif;
   cursor: pointer;
   border: none;
   font-weight: 500;
   transition: all 0.15s;
-  text-decoration: none;
 }
-
-.btn-primary {
-  background: var(--accent);
-  color: #fff;
-}
-.btn-primary:hover { background: var(--accent-hover); }
-
-.btn-secondary {
-  background: var(--bg-input);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-}
-.btn-secondary:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.btn-icon {
-  padding: 8px 12px;
-}
+.btn-primary { background: #0067c0; color: #fff; }
+.btn-primary:hover { background: #005ba3; }
+.btn-secondary { background: var(--input); color: var(--ts); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: #0067c0; color: #0067c0; }
 
 /* ===== BODY ===== */
-.body {
-  padding: 24px 32px;
+.detail-body {
+  padding: 24px 32px 32px;
   display: flex;
   gap: 20px;
   align-items: flex-start;
@@ -194,248 +178,166 @@
   gap: 14px;
 }
 
-/* ===== SECTION CARD ===== */
-.section-card {
-  background: var(--bg-white);
+/* ===== CARDS ===== */
+.sc {
+  background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
+  border-radius: 14px;
   overflow: hidden;
 }
-
-.section-header {
+.sc-head {
   padding: 14px 18px 0;
-}
-
-.section-title {
   font-size: 10px;
   font-weight: 700;
-  color: var(--text-hint);
+  color: var(--th);
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
+.sc-body { padding: 0 18px 18px; }
 
-.section-body {
-  padding: 0 18px 18px;
-}
-
-/* ===== DESCRIPTION ===== */
+/* Description */
 .description {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--ts);
   line-height: 1.8;
   white-space: pre-line;
 }
 
-/* ===== RATING BAR ===== */
-.rating-bar-wrap {
+/* Rating */
+.rating-wrap {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
-
-.rating-number {
-  font-size: 36px;
+.rating-big {
+  font-size: 40px;
   font-weight: 700;
-  color: var(--warning);
+  color: #ca5010;
   line-height: 1;
 }
+.stars { display: flex; gap: 3px; font-size: 20px; }
+.star-full  { color: #f59e0b; }
+.star-empty { color: var(--border); }
+.rating-src { font-size: 11px; color: var(--th); margin-top: 3px; }
 
-.stars-wrap { display: flex; flex-direction: column; gap: 4px; }
-
-.stars {
-  display: flex;
-  gap: 3px;
-}
-
-.star { font-size: 18px; }
-.star.full  { color: #f59e0b; }
-.star.half  { color: #f59e0b; opacity: 0.5; }
-.star.empty { color: var(--border); }
-
-.rating-count {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-/* ===== GENRES ===== */
-.genres-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-
+/* Genres */
+.genres-wrap { display: flex; flex-wrap: wrap; gap: 7px; }
 .genre-pill {
-  background: var(--accent-light);
+  background: var(--accent-l);
   color: var(--accent);
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--accent-b);
   border-radius: 14px;
   font-size: 12px;
   padding: 4px 12px;
   font-weight: 500;
 }
 
-/* ===== SCREENSHOTS ===== */
-.screenshots-wrap {
+/* Screenshots */
+.screens-wrap {
   display: flex;
   gap: 10px;
   overflow-x: auto;
   padding-bottom: 4px;
 }
-
-.screenshot {
+.screen {
   flex-shrink: 0;
-  width: 200px;
-  height: 113px;
-  border-radius: var(--radius-md);
-  object-fit: cover;
+  width: 220px;
+  height: 124px;
+  border-radius: 8px;
   border: 1px solid var(--border);
-  background: var(--bg-input);
+  background: var(--input);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  color: var(--text-hint);
-  overflow: hidden;
+  color: var(--th);
+  font-size: 13px;
 }
-
-.screenshot img {
+.screen img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-/* ===== INFO TABLE ===== */
-.info-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+/* Info table */
+.info-tbl { width: 100%; border-collapse: collapse; }
+.info-tbl tr { border-bottom: 1px solid var(--border-l); }
+.info-tbl tr:last-child { border-bottom: none; }
+.info-tbl td { padding: 7px 4px; font-size: 12px; vertical-align: top; }
+.ik { color: var(--th); width: 110px; text-align: right; padding-right: 14px; white-space: nowrap; }
+.iv { color: var(--tp); font-weight: 500; word-break: break-word; }
 
-.info-table tr {
-  border-bottom: 1px solid var(--border-light);
-}
-
-.info-table tr:last-child {
-  border-bottom: none;
-}
-
-.info-table td {
-  padding: 7px 4px;
-  font-size: 12px;
-  vertical-align: top;
-}
-
-.info-table .ik {
-  color: var(--text-hint);
-  width: 110px;
-  text-align: right;
-  padding-right: 14px;
-  white-space: nowrap;
-}
-
-.info-table .iv {
-  color: var(--text-primary);
-  font-weight: 500;
-  word-break: break-word;
-}
-
-/* ===== LANGUES ===== */
-.langs-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
+/* Langues */
+.langs-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
 .lang-pill {
-  background: var(--accent-light);
+  background: var(--accent-l);
   color: var(--accent);
-  border: 1px solid var(--accent-border);
+  border: 1px solid var(--accent-b);
   border-radius: 12px;
   font-size: 11px;
   padding: 2px 9px;
 }
 
-/* ===== CONTENU ASSOCIÉ ===== */
-.relation-list {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.relation-item {
+/* Contenu associé */
+.rel-list { display: flex; flex-direction: column; gap: 7px; }
+.rel-item {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 9px 11px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  background: var(--input);
+  border: 1px solid var(--border-l);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
   text-decoration: none;
-  color: inherit;
 }
-
-.relation-item:hover {
-  border-color: var(--accent);
-  background: var(--accent-light);
-}
-
+.rel-item:hover { border-color: var(--accent); background: var(--accent-l); }
 .rel-icon {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: 18px;
   flex-shrink: 0;
 }
-
-.rel-info { flex: 1; }
-
-.rel-title {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
+.rel-icon-game     { background: linear-gradient(145deg, #d8e8f5, #eaf2fb); }
+.rel-icon-dlc      { background: linear-gradient(145deg, #d0ecd0, #e8f5e8); }
+.rel-icon-update   { background: linear-gradient(145deg, #d0e4f5, #e8f2fb); }
+.rel-icon-backport { background: linear-gradient(145deg, #f5e4d0, #faf0e8); }
+.rel-info { flex: 1; min-width: 0; }
+.rel-title { font-size: 12px; font-weight: 500; color: var(--tp); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rel-badge {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 3px;
   display: inline-block;
   margin-top: 2px;
+  color: #fff;
 }
+.rel-badge-game     { background: #0067c0; }
+.rel-badge-dlc      { background: #107c10; }
+.rel-badge-update   { background: #0078d4; }
+.rel-badge-backport { background: #ca5010; }
+.rel-size { font-size: 11px; color: var(--tm); flex-shrink: 0; }
 
-.rel-size {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-/* ===== EMPTY STATE ===== */
-.empty-relations {
+.empty-rel {
   text-align: center;
-  color: var(--text-hint);
+  color: var(--th);
   font-size: 12px;
-  padding: 12px 0;
-  line-height: 1.6;
+  padding: 14px 0;
+  line-height: 1.7;
 }
 
-/* ===== ANIMATION ===== */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.hero     { animation: fadeIn 0.2s ease; }
-.body     { animation: fadeIn 0.25s ease; }
 {% endblock %}
 
 {% block content %}
-<div class="page type-{{ pkg.type }}">
+<div class="detail-wrap">
 
   <!-- HERO -->
   <div class="hero">
@@ -443,68 +345,73 @@
     <!-- Jaquette -->
     <div class="cover-wrap">
       {% if pkg.cover_path %}
-        <img class="cover" src="file:///{{ pkg.cover_path }}" alt="{{ pkg.title }}" />
+        <img class="cover-img"
+          src="file:///{{ pkg.cover_path }}"
+          alt="{{ pkg.title }}" />
       {% else %}
-        <div class="cover-placeholder">{{ type_icon }}</div>
+        <div class="cover-placeholder cover-ph-{{ pkg.type }}">
+          {{ pkg.type_icon }}
+        </div>
       {% endif %}
     </div>
 
     <!-- Infos -->
-    <div class="hero-right">
+    <div class="hero-info">
 
-      <!-- Badges -->
       <div class="badge-row">
-        <span class="type-badge">{{ type_label }}</span>
-        {% if pkg.region %}
-          <span class="tag">🌍 {{ pkg.region }}</span>
-        {% endif %}
+        <span class="type-badge badge-{{ pkg.type }}">{{ pkg.type_label }}</span>
+        {% if pkg.region %}<span class="tag">🌍 {{ pkg.region }}</span>{% endif %}
         <span class="tag">🎮 PS4</span>
-        {% if pkg.firmware %}
+        {% if pkg.firmware and pkg.firmware != '—' %}
           <span class="tag">🛡 FW {{ pkg.firmware }}</span>
+        {% endif %}
+        {% if pkg.app_ver %}
+          <span class="tag">📦 v{{ pkg.app_ver }}</span>
         {% endif %}
       </div>
 
-      <!-- Titre -->
-      <div class="game-title">{{ pkg.title_api or pkg.title or "Inconnu" }}</div>
+      <div class="game-title">
+        {{ pkg.title_api or pkg.title or "Inconnu" }}
+      </div>
 
       {% if pkg.title_api and pkg.title and pkg.title_api != pkg.title %}
         <div class="game-subtitle">({{ pkg.title }})</div>
       {% endif %}
 
-      <!-- Infos rapides -->
+      {% if pkg.rating or pkg.release_date %}
       <div class="quick-row">
         {% if pkg.rating %}
-          <div class="quick-item rating">★ {{ "%.1f"|format(pkg.rating) }} / 5</div>
+          <span class="quick-item quick-rating">★ {{ "%.1f"|format(pkg.rating) }} / 5</span>
         {% endif %}
         {% if pkg.release_date %}
-          <div class="quick-item">📅 {{ pkg.release_date }}</div>
-        {% endif %}
-        {% if pkg.app_ver %}
-          <div class="quick-item">📦 v{{ pkg.app_ver }}</div>
+          <span class="quick-item">📅 {{ pkg.release_date }}</span>
         {% endif %}
       </div>
-
-      <!-- Dev / Publisher -->
-      {% if pkg.developer or pkg.publisher %}
-        <div class="dev-pub">
-          {% if pkg.developer %}Développeur : {{ pkg.developer }}{% endif %}
-          {% if pkg.developer and pkg.publisher %} &nbsp;·&nbsp; {% endif %}
-          {% if pkg.publisher and pkg.publisher != pkg.developer %}Éditeur : {{ pkg.publisher }}{% endif %}
-        </div>
       {% endif %}
 
-      <!-- Actions -->
+      {% if pkg.developer or pkg.publisher %}
+      <div class="dev-pub">
+        {% if pkg.developer %}Développeur : {{ pkg.developer }}{% endif %}
+        {% if pkg.developer and pkg.publisher and pkg.publisher != pkg.developer %}
+          &nbsp;·&nbsp;
+        {% endif %}
+        {% if pkg.publisher and pkg.publisher != pkg.developer %}
+          Éditeur : {{ pkg.publisher }}
+        {% endif %}
+      </div>
+      {% endif %}
+
       <div class="actions">
         <button class="btn btn-primary"
-          onclick="pybridge.open_folder('{{ pkg.filepath }}')">
+          onclick="pybridge.open_folder('{{ pkg.filepath|e }}')">
           📁 Ouvrir le dossier
         </button>
         <button class="btn btn-secondary"
-          onclick="pybridge.copy_path('{{ pkg.filepath }}')">
+          onclick="pybridge.copy_path('{{ pkg.filepath|e }}')">
           📋 Copier le chemin
         </button>
         <button class="btn btn-secondary"
-          onclick="pybridge.copy_cid('{{ pkg.content_id }}')">
+          onclick="pybridge.copy_cid('{{ pkg.content_id|e }}')">
           🔑 Copier le CUSA
         </button>
       </div>
@@ -513,30 +420,26 @@
   </div>
 
   <!-- BODY -->
-  <div class="body">
+  <div class="detail-body">
 
     <!-- Colonne principale -->
     <div class="main-col">
 
       <!-- Description -->
-      <div class="section-card">
-        <div class="section-header">
-          <div class="section-title">Description</div>
-        </div>
-        <div class="section-body">
+      <div class="sc">
+        <div class="sc-head">Description</div>
+        <div class="sc-body">
           {% if pkg.rating %}
-          <div class="rating-bar-wrap">
-            <div class="rating-number">{{ "%.1f"|format(pkg.rating) }}</div>
-            <div class="stars-wrap">
+          <div class="rating-wrap">
+            <div class="rating-big">{{ "%.1f"|format(pkg.rating) }}</div>
+            <div>
               <div class="stars">
-                {% set full  = (pkg.rating | int) %}
-                {% set half  = 1 if (pkg.rating - full) >= 0.5 else 0 %}
-                {% set empty = 5 - full - half %}
-                {% for i in range(full)  %}<span class="star full">★</span>{% endfor %}
-                {% for i in range(half)  %}<span class="star half">★</span>{% endfor %}
-                {% for i in range(empty) %}<span class="star empty">★</span>{% endfor %}
+                {% set full  = pkg.rating | int %}
+                {% set empty = 5 - full %}
+                {% for i in range(full)  %}<span class="star-full">★</span>{% endfor %}
+                {% for i in range(empty) %}<span class="star-empty">★</span>{% endfor %}
               </div>
-              <div class="rating-count">Note RAWG.io</div>
+              <div class="rating-src">Note RAWG.io</div>
             </div>
           </div>
           {% endif %}
@@ -547,44 +450,34 @@
       </div>
 
       <!-- Genres -->
-      <div class="section-card">
-        <div class="section-header">
-          <div class="section-title">Genres</div>
-        </div>
-        <div class="section-body">
+      {% if pkg.genres %}
+      <div class="sc">
+        <div class="sc-head">Genres</div>
+        <div class="sc-body">
           <div class="genres-wrap">
-            {% if pkg.genres %}
-              {% for genre in pkg.genres %}
-                <span class="genre-pill">{{ genre }}</span>
-              {% endfor %}
-            {% else %}
-              <span style="color: var(--text-hint);">—</span>
-            {% endif %}
+            {% for genre in pkg.genres %}
+              <span class="genre-pill">{{ genre }}</span>
+            {% endfor %}
           </div>
         </div>
       </div>
+      {% endif %}
 
       <!-- Screenshots -->
-      <div class="section-card">
-        <div class="section-header">
-          <div class="section-title">Screenshots</div>
-        </div>
-        <div class="section-body">
-          <div class="screenshots-wrap">
-            {% if pkg.screenshots %}
-              {% for path in pkg.screenshots[:4] %}
-                <div class="screenshot">
-                  <img src="file:///{{ path }}" alt="Screenshot" />
-                </div>
-              {% endfor %}
-            {% else %}
-              {% for i in range(4) %}
-                <div class="screenshot">🖼️</div>
-              {% endfor %}
-            {% endif %}
+      {% if pkg.screenshots %}
+      <div class="sc">
+        <div class="sc-head">Screenshots</div>
+        <div class="sc-body">
+          <div class="screens-wrap">
+            {% for path in pkg.screenshots[:4] %}
+              <div class="screen">
+                <img src="file:///{{ path }}" alt="Screenshot" />
+              </div>
+            {% endfor %}
           </div>
         </div>
       </div>
+      {% endif %}
 
     </div>
 
@@ -592,12 +485,10 @@
     <div class="aside-col">
 
       <!-- Informations -->
-      <div class="section-card">
-        <div class="section-header">
-          <div class="section-title">Informations</div>
-        </div>
-        <div class="section-body">
-          <table class="info-table">
+      <div class="sc">
+        <div class="sc-head">Informations</div>
+        <div class="sc-body">
+          <table class="info-tbl">
             <tr>
               <td class="ik">Content-ID</td>
               <td class="iv">{{ pkg.content_id or "—" }}</td>
@@ -633,47 +524,39 @@
       </div>
 
       <!-- Langues -->
-      <div class="section-card">
-        <div class="section-header">
-          <div class="section-title">Langues supportées</div>
-        </div>
-        <div class="section-body">
+      {% if pkg.languages %}
+      <div class="sc">
+        <div class="sc-head">Langues supportées</div>
+        <div class="sc-body">
           <div class="langs-wrap">
-            {% if pkg.languages %}
-              {% for lang in pkg.languages[:8] %}
-                <span class="lang-pill">{{ lang }}</span>
-              {% endfor %}
-              {% if pkg.languages|length > 8 %}
-                <span style="color: var(--text-hint); font-size: 12px;">
-                  +{{ pkg.languages|length - 8 }}
-                </span>
-              {% endif %}
-            {% else %}
-              <span style="color: var(--text-hint);">—</span>
+            {% for lang in pkg.languages[:8] %}
+              <span class="lang-pill">{{ lang }}</span>
+            {% endfor %}
+            {% if pkg.languages | length > 8 %}
+              <span style="color:var(--th); font-size:12px;">
+                +{{ pkg.languages | length - 8 }}
+              </span>
             {% endif %}
           </div>
         </div>
       </div>
+      {% endif %}
 
       <!-- Contenu associé -->
-      <div class="section-card">
-        <div class="section-header">
-          <div class="section-title">Contenu associé</div>
-        </div>
-        <div class="section-body">
+      <div class="sc">
+        <div class="sc-head">Contenu associé</div>
+        <div class="sc-body">
           {% if related %}
-            <div class="relation-list">
+            <div class="rel-list">
               {% for rel in related %}
-                <div class="relation-item"
-                  onclick="pybridge.open_related('{{ rel.content_id }}')">
-                  <div class="rel-icon"
-                    style="background: {{ rel.type_bg }};">
+                <div class="rel-item"
+                  onclick="pybridge.open_related('{{ rel.content_id|e }}')">
+                  <div class="rel-icon rel-icon-{{ rel.type }}">
                     {{ rel.type_icon }}
                   </div>
                   <div class="rel-info">
-                    <div class="rel-title">{{ rel.title[:24] }}</div>
-                    <span class="rel-badge"
-                      style="background: {{ rel.type_badge }}; color: #fff;">
+                    <div class="rel-title">{{ rel.title }}</div>
+                    <span class="rel-badge rel-badge-{{ rel.type }}">
                       {{ rel.type_label }}
                     </span>
                   </div>
@@ -682,7 +565,7 @@
               {% endfor %}
             </div>
           {% else %}
-            <div class="empty-relations">
+            <div class="empty-rel">
               Aucun contenu associé<br>trouvé dans la bibliothèque.
             </div>
           {% endif %}
@@ -692,4 +575,7 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
 {% endblock %}

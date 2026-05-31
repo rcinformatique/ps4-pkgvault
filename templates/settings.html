@@ -1,10 +1,270 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block extra_styles %}
+.settings-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settings-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+
+.settings-section-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-l);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tp);
+}
+.settings-section-header .icon { font-size: 18px; }
+
+.settings-row {
+  padding: 13px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-l);
+}
+.settings-row:last-child { border-bottom: none; }
+
+.settings-row-text { flex: 1; }
+.row-label {
+  font-size: 13px;
+  color: var(--tp);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.row-desc { font-size: 11px; color: var(--tm); }
+
+.settings-input {
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 6px 11px;
+  font-size: 12px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: var(--tp);
+  outline: none;
+  min-width: 220px;
+  height: 32px;
+  transition: border-color 0.15s;
+}
+.settings-input:focus { border-color: var(--accent); }
+
+.settings-select {
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: var(--tp);
+  outline: none;
+  min-width: 180px;
+  height: 32px;
+  cursor: pointer;
+}
+.settings-select:hover { border-color: var(--accent); }
+
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.toggle {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+.toggle.on { background: var(--accent); }
+.toggle.off { background: var(--border-s); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left 0.2s;
+}
+.toggle.on::after  { left: 21px; }
+.toggle.off::after { left: 3px; }
+.toggle-label { font-size: 12px; color: var(--ts); }
+
+.test-btn {
+  background: var(--accent-l);
+  border: 1px solid var(--accent-b);
+  border-radius: var(--r-md);
+  color: var(--accent);
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  height: 32px;
+  transition: all 0.15s;
+}
+.test-btn:hover { background: var(--accent); color: #fff; }
+
+.input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.save-row {
+  display: flex;
+  gap: 8px;
+}
+{% endblock %}
+
+{% block content %}
+<div class="settings-scroll">
+
+  <div style="padding: 0 0 8px;">
+    <div class="page-title">Paramètres</div>
+    <div class="page-subtitle">Configurez PS4 PKGVault selon vos préférences.</div>
+  </div>
+
+  <!-- APIs -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="icon">🔌</span> APIs &amp; Données
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="row-label">Clé API RAWG.io</div>
+        <div class="row-desc">Descriptions, genres, ratings et screenshots · rawg.io/apidocs</div>
+      </div>
+      <div class="input-row">
+        <input class="settings-input" type="text" id="rawg-key"
+          placeholder="Votre clé RAWG…"
+          value="{{ settings.rawg_api_key or '' }}" />
+        <button class="test-btn" onclick="testRawg()">Tester</button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="row-label">Clé API IGDB (Twitch Client ID)</div>
+        <div class="row-desc">Vidéos et artworks · dev.twitch.tv (gratuit)</div>
+      </div>
+      <input class="settings-input" type="text" id="igdb-key"
+        placeholder="Twitch Client ID…"
+        value="{{ settings.igdb_client_id or '' }}" />
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="row-label">Téléchargement automatique</div>
+        <div class="row-desc">Lance la récupération API après chaque scan</div>
+      </div>
+      <button class="toggle {{ 'on' if settings.auto_fetch else 'off' }}"
+        id="toggle-auto"
+        onclick="toggleAuto()"></button>
+    </div>
+  </div>
+
+  <!-- Affichage -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="icon">🎨</span> Affichage
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="row-label">Taille des cartes</div>
+        <div class="row-desc">Largeur minimale des cartes dans la grille</div>
+      </div>
+      <select class="settings-select" id="card-size">
+        <option value="160" {{ 'selected' if settings.card_min_width == 160 }}>Petites (160px)</option>
+        <option value="180" {{ 'selected' if settings.card_min_width == 180 }}>Moyennes (180px)</option>
+        <option value="220" {{ 'selected' if settings.card_min_width == 220 }}>Grandes (220px)</option>
+        <option value="260" {{ 'selected' if settings.card_min_width == 260 }}>Très grandes (260px)</option>
+      </select>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="row-label">Langue de l'interface</div>
+        <div class="row-desc">Redémarrage requis pour appliquer</div>
+      </div>
+      <select class="settings-select" id="lang">
+        <option value="fr" {{ 'selected' if settings.language == 'fr' }}>Français</option>
+        <option value="en" {{ 'selected' if settings.language == 'en' }}>English</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Cache & BDD -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="icon">🗄️</span> Base de données &amp; Cache
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="row-label">Cache des jaquettes</div>
+        <div class="row-desc">{{ settings.cache_info or 'cache/covers/ · 0 fichiers' }}</div>
+      </div>
+      <button class="btn btn-danger" onclick="pybridge.clear_cache()">
+        🗑️ Vider
+      </button>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="row-label">Réinitialiser la base de données</div>
+        <div class="row-desc">Supprime tous les jeux indexés — les fichiers PKG ne sont pas affectés</div>
+      </div>
+      <button class="btn btn-danger" onclick="pybridge.reset_db()">
+        ⚠️ Réinitialiser
+      </button>
+    </div>
+  </div>
+
+  <!-- Bouton sauvegarder -->
+  <div class="save-row">
+    <button class="btn btn-primary" onclick="saveSettings()">
+      💾 Sauvegarder les paramètres
+    </button>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+var _autoFetch = {{ 'true' if settings.auto_fetch else 'false' }};
+
+function toggleAuto() {
+  _autoFetch = !_autoFetch;
+  var btn = document.getElementById('toggle-auto');
+  btn.className = 'toggle ' + (_autoFetch ? 'on' : 'off');
+}
+
+function testRawg() {
+  var key = document.getElementById('rawg-key').value.trim();
+  if (pybridge) pybridge.test_rawg(key);
+}
+
+function saveSettings() {
+  var data = {
+    rawg_api_key:   document.getElementById('rawg-key').value.trim(),
+    igdb_client_id: document.getElementById('igdb-key').value.trim(),
+    auto_fetch:     _autoFetch,
+    card_min_width: parseInt(document.getElementById('card-size').value),
+    language:       document.getElementById('lang').value,
+  };
+  if (pybridge) pybridge.save_settings(JSON.stringify(data));
+}
+{% endblock %}

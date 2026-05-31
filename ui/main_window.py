@@ -2,7 +2,10 @@ import os
 import subprocess
 import json
 from pathlib import Path
-from PyQt6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QFileDialog, QMessageBox, QInputDialog, QApplication
+from PyQt6.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout,
+    QFileDialog, QMessageBox, QInputDialog, QApplication
+)
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QSize, QObject, pyqtSlot, QUrl
@@ -28,8 +31,8 @@ SAMPLE_PACKAGES = [
         "release_date": "12 Novembre 2020",
         "rating":       4.5,
         "genres":       ["Action-Aventure", "Open World", "Super-héros"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Italien", "Portugais (BR)"],
-        "description":  "Dans Marvel's Spider-Man: Miles Morales, une nouvelle aventure épique prend vie dans les rues enneigées de New York. Lors d'un conflit entre une société d'énergie corrompue et une armée high-tech, Miles doit embrasser son rôle de Spider-Man et décider ce que cela signifie d'être un héros.\n\nVivez les pouvoirs uniques de Miles, notamment sa bioélectricité et son camouflage, pour combattre des ennemis redoutables dans un New York hivernal.",
+        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Italien"],
+        "description":  "Dans Marvel's Spider-Man: Miles Morales, une nouvelle aventure épique prend vie dans les rues enneigées de New York. Lors d'un conflit entre une société d'énergie corrompue et une armée high-tech, Miles doit embrasser son rôle de Spider-Man.\n\nVivez les pouvoirs uniques de Miles, notamment sa bioélectricité et son camouflage, pour combattre des ennemis redoutables.",
         "screenshots":  [],
         "cover_path":   "",
     },
@@ -83,7 +86,7 @@ SAMPLE_PACKAGES = [
         "release_date": "9 Novembre 2022",
         "rating":       4.8,
         "genres":       ["Action-Aventure", "Mythologie nordique", "RPG"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Italien", "Portugais (BR)", "Russe", "Néerlandais"],
+        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Italien", "Portugais (BR)", "Russe"],
         "description":  "Kratos et Atreus doivent voyager à travers les neuf royaumes pour trouver les réponses nécessaires à la survie du monde contre le Fimbulwinter imminent et le début du Ragnarök.\n\nContinuant l'histoire de God of War (2018), ce nouvel opus offre une aventure épique mêlant mythologie nordique, combats intenses et une relation père-fils au coeur du récit.",
         "screenshots":  [],
         "cover_path":   "",
@@ -122,8 +125,8 @@ SAMPLE_PACKAGES = [
         "release_date": "19 Juin 2020",
         "rating":       4.2,
         "genres":       ["Action-Aventure", "Survival Horror", "Post-apocalyptique"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Italien", "Japonais", "Portugais (BR)", "Russe", "Polonais"],
-        "description":  "Cinq ans après leur périlleux voyage à travers les États-Unis post-pandémie, Ellie et Joel se sont installés à Jackson, Wyoming. En vivant parmi une communauté florissante de survivants, ils créent des liens, s'affrontent à des conflits et endurent des souffrances.\n\nWhen a violent event disrupts that peace, Ellie embarks on a relentless journey to carry out justice and find closure. As she hunts those responsible one by one, she is confronted with the devastating physical and emotional repercussions of her actions.",
+        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Italien", "Japonais"],
+        "description":  "Cinq ans après leur périlleux voyage à travers les États-Unis post-pandémie, Ellie et Joel se sont installés à Jackson, Wyoming. En vivant parmi une communauté florissante de survivants, ils créent des liens, s'affrontent à des conflits et endurent des souffrances.\n\nWhen a violent event disrupts that peace, Ellie embarks on a relentless journey to carry out justice and find closure.",
         "screenshots":  [],
         "cover_path":   "",
     },
@@ -146,7 +149,7 @@ SAMPLE_PACKAGES = [
         "rating":       4.3,
         "genres":       ["Action-Aventure", "Monde ouvert", "Samouraï"],
         "languages":    ["Français", "Anglais (US)", "Espagnol", "Japonais"],
-        "description":  "Explorez l'île d'Iki dans cette extension majeure de Ghost of Tsushima. Jin Sakai se rend sur cette île mystérieuse pour affronter une nouvelle menace mongole, tout en découvrant des secrets douloureux de son passé.\n\nL'île d'Iki offre un nouveau monde ouvert à explorer, avec de nouvelles mécaniques de jeu, de nouveaux ennemis, équipements et une histoire poignante.",
+        "description":  "Explorez l'île d'Iki dans cette extension majeure de Ghost of Tsushima. Jin Sakai se rend sur cette île mystérieuse pour affronter une nouvelle menace mongole, tout en découvrant des secrets douloureux de son passé.",
         "screenshots":  [],
         "cover_path":   "",
     },
@@ -168,8 +171,8 @@ SAMPLE_PACKAGES = [
         "release_date": "26 Septembre 2023",
         "rating":       4.4,
         "genres":       ["RPG", "Action", "Cyberpunk", "Open World"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Polonais", "Russe", "Japonais"],
-        "description":  "Phantom Liberty est une nouvelle extension spy-thriller pour Cyberpunk 2077. Quand le vaisseau spatial de la présidente des États-Unis Unifiés d'Amérique est abattu au-dessus du district le plus dangereux de Night City, V est engagé pour une mission de sauvetage.\n\nDans Dogtown, une enclave sans loi gouvernée par un chef de guerre corrompu, V devra naviguer entre des factions rivales pour sauver la présidente et découvrir les secrets qui pourraient changer la face de Night City.",
+        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Polonais", "Russe"],
+        "description":  "Phantom Liberty est une nouvelle extension spy-thriller pour Cyberpunk 2077. Quand le vaisseau spatial de la présidente des États-Unis Unifiés d'Amérique est abattu au-dessus du district le plus dangereux de Night City, V est engagé pour une mission de sauvetage.",
         "screenshots":  [],
         "cover_path":   "",
     },
@@ -207,8 +210,8 @@ SAMPLE_PACKAGES = [
         "release_date": "24 Mars 2015",
         "rating":       4.7,
         "genres":       ["Action-RPG", "Souls-like", "Horreur gothique"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Japonais", "Italien"],
-        "description":  "Explorez les rues cauchemardesque de Yharnam, une ville antique rongée par une maladie du sang endémique. En tant que chasseur, découvrez ses mystères et combattez ses habitants devenus fous.\n\nBloodborne est un action-RPG intense qui récompense la bravoure et la maîtrise. Affrontez des boss terrifiants, découvrez des secrets cachés et plongez dans un univers gothique sombre et oppressant. Ce backport vous permet de jouer sur firmware 9.00.",
+        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Japonais"],
+        "description":  "Explorez les rues cauchemardesque de Yharnam, une ville antique rongée par une maladie du sang endémique. En tant que chasseur, découvrez ses mystères et combattez ses habitants devenus fous.\n\nBloodborne est un action-RPG intense qui récompense la bravoure et la maîtrise. Ce backport vous permet de jouer sur firmware 9.00.",
         "screenshots":  [],
         "cover_path":   "",
     },
@@ -231,20 +234,38 @@ SAMPLE_PACKAGES = [
         "rating":       4.6,
         "genres":       ["Action-Aventure", "Souls-like", "Japon féodal"],
         "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Japonais"],
-        "description":  "Sekiro: Shadows Die Twice vous plonge dans le Japon féodal du XVIème siècle. Incarnez un shinobi déterminé à venger son seigneur et à briser la malédiction de la mort.\n\nMaîtrisez l'art du combat au katana, utilisez vos outils de shinobi et explorez un monde magnifique et brutal. Ce backport vous permet de profiter du jeu sur firmware 9.00 avec toutes les améliorations de performance.",
+        "description":  "Sekiro: Shadows Die Twice vous plonge dans le Japon féodal du XVIème siècle. Incarnez un shinobi déterminé à venger son seigneur et à briser la malédiction de la mort.\n\nMaîtrisez l'art du combat au katana, utilisez vos outils de shinobi et explorez un monde magnifique et brutal. Ce backport vous permet de profiter du jeu sur firmware 9.00.",
         "screenshots":  [],
         "cover_path":   "",
     },
 ]
 
 SAMPLE_FOLDERS = [
-    {"path": "F:/PS4 JailBreak/Games", "total": 6, "game": 3, "dlc": 1, "update": 1, "backport": 1, "size_str": "261 Go", "date_added": "2026-05-31"},
-    {"path": "E:/Backups/PKG",         "total": 2, "game": 0, "dlc": 1, "update": 0, "backport": 1, "size_str": "36 Go",  "date_added": "2026-05-31"},
+    {
+        "path":       "F:/PS4 JailBreak/Games",
+        "total":      8,
+        "game":       3,
+        "dlc":        2,
+        "update":     2,
+        "backport":   2,
+        "size_str":   "261 Go",
+        "date_added": "2026-05-31",
+    },
+    {
+        "path":       "E:/Backups/PKG",
+        "total":      3,
+        "game":       0,
+        "dlc":        1,
+        "update":     1,
+        "backport":   0,
+        "size_str":   "36 Go",
+        "date_added": "2026-05-31",
+    },
 ]
 
 
 def _compute_stats(packages: list[dict]) -> dict:
-    counts = {"game": 0, "dlc": 0, "update": 0, "backport": 0}
+    counts      = {"game": 0, "dlc": 0, "update": 0, "backport": 0}
     total_bytes = 0
     for pkg in packages:
         t = pkg.get("type", "game")
@@ -267,12 +288,14 @@ class PyBridge(QObject):
         super().__init__(parent)
         self._win = window
 
-    # Navigation
     @pyqtSlot(str)
     def navigate(self, page: str):
         self._win.navigate(page)
 
-    # Recherche / filtres
+    @pyqtSlot()
+    def go_back(self):
+        self._win.go_back()
+
     @pyqtSlot(str)
     def search(self, text: str):
         self._win.on_search(text)
@@ -285,12 +308,10 @@ class PyBridge(QObject):
     def set_sort(self, key: str):
         self._win.on_sort(key)
 
-    # Cartes
     @pyqtSlot(str)
     def card_clicked(self, filepath: str):
         self._win.on_card_clicked(filepath)
 
-    # Actions fichiers
     @pyqtSlot(str)
     def open_folder(self, filepath: str):
         if filepath:
@@ -315,7 +336,6 @@ class PyBridge(QObject):
     def delete_file(self, filepath: str):
         self._win.on_delete(filepath)
 
-    # Dossiers
     @pyqtSlot()
     def add_folder(self):
         self._win.on_add_folder()
@@ -328,7 +348,6 @@ class PyBridge(QObject):
     def delete_folder(self, path: str):
         self._win.on_delete_folder(path)
 
-    # Paramètres
     @pyqtSlot(str)
     def save_settings(self, json_str: str):
         try:
@@ -353,7 +372,6 @@ class PyBridge(QObject):
     def toggle_view(self):
         print("Toggle vue")
 
-    # Détail
     @pyqtSlot(str)
     def open_related(self, content_id: str):
         self._win.on_open_related(content_id)
@@ -362,15 +380,16 @@ class PyBridge(QObject):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self._engine       = TemplateEngine()
-        self._packages     = list(SAMPLE_PACKAGES)
-        self._folders      = list(SAMPLE_FOLDERS)
-        self._settings     = {}
-        self._active_page  = "library"
+        self._engine        = TemplateEngine()
+        self._packages      = list(SAMPLE_PACKAGES)
+        self._folders       = list(SAMPLE_FOLDERS)
+        self._settings      = {}
+        self._active_page   = "library"
+        self._previous_page = "library"
         self._active_filter = "game"
-        self._active_sort  = "title"
-        self._search_text  = ""
-        self._status_msg   = "8 PKG chargés"
+        self._active_sort   = "title"
+        self._search_text   = ""
+        self._status_msg    = "11 PKG chargés"
 
         self._init_window()
         self._init_ui()
@@ -389,10 +408,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # WebEngine
-        self._web = QWebEngineView()
-
-        # WebChannel
+        self._web     = QWebEngineView()
         self._bridge  = PyBridge(self)
         self._channel = QWebChannel()
         self._channel.registerObject("pybridge", self._bridge)
@@ -405,6 +421,8 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def navigate(self, page: str):
+        if page != self._active_page:
+            self._previous_page = self._active_page
         self._active_page = page
         if page == "library":
             self._show_library()
@@ -414,13 +432,26 @@ class MainWindow(QMainWindow):
             self._show_settings()
         elif page == "credits":
             self._show_credits()
-        elif page == "detail":
-            pass  # géré par on_card_clicked
 
-    def _load_html(self, html: str):
-        """Charge le HTML dans le WebEngine."""
+    def go_back(self):
+        self.navigate(self._previous_page)
+
+    def _load_html(self, html: str, show_back: bool = False):
         html = self._inject_webchannel(html)
         self._web.setHtml(html, QUrl("file:///"))
+        if show_back:
+            try:
+                self._web.loadFinished.disconnect(self._on_detail_loaded)
+            except Exception:
+                pass
+            self._web.loadFinished.connect(self._on_detail_loaded)
+
+    def _on_detail_loaded(self, ok: bool):
+        try:
+            self._web.loadFinished.disconnect(self._on_detail_loaded)
+        except Exception:
+            pass
+        self._web.page().runJavaScript("showBackBtn(true);")
 
     def _inject_webchannel(self, html: str) -> str:
         script = """
@@ -433,30 +464,51 @@ class MainWindow(QMainWindow):
         """
         return html.replace("</head>", script + "</head>", 1)
 
+    # ------------------------------------------------------------------ #
+    #  Stats & filtres                                                     #
+    # ------------------------------------------------------------------ #
+
     def _get_stats(self) -> dict:
         return _compute_stats(self._packages)
 
     def _get_filtered_packages(self) -> list[dict]:
         pkgs = self._packages.copy()
+
         if self._active_filter != "all":
-            pkgs = [p for p in pkgs if p.get("type") == self._active_filter]
+            pkgs = [
+                p for p in pkgs
+                if p.get("type") == self._active_filter
+            ]
+
         if self._search_text:
             q = self._search_text.lower()
             pkgs = [
                 p for p in pkgs
                 if q in p.get("title", "").lower()
+                or q in p.get("title_api", "").lower()
                 or q in p.get("content_id", "").lower()
             ]
+
         def sort_key(p):
             if self._active_sort == "title":
-                return p.get("title", "").lower()
+                return (
+                    p.get("title_api") or p.get("title") or ""
+                ).lower()
             if self._active_sort == "size":
                 return p.get("size_bytes", 0)
             if self._active_sort == "type":
                 return p.get("type", "")
             return p.get("date_added", "")
+
         pkgs.sort(key=sort_key)
         return pkgs
+
+    def _extract_cusa(self, content_id: str) -> str:
+        """Extrait le CUSA/CUSE depuis un content_id."""
+        for part in content_id.replace("-", "_").split("_"):
+            if part.startswith("CUSA") or part.startswith("CUSE"):
+                return part
+        return ""
 
     # ------------------------------------------------------------------ #
     #  Pages                                                               #
@@ -465,16 +517,19 @@ class MainWindow(QMainWindow):
     def _show_library(self):
         pkgs  = self._get_filtered_packages()
         stats = self._get_stats()
-        html  = self._engine.render_library(
+        total = len(pkgs)
+        size  = stats.get("total_size", "0 Go")
+        count_str = f"{total} fichier{'s' if total > 1 else ''} · {size}"
+
+        html = self._engine.render_library(
             packages      = pkgs,
             stats         = stats,
             active_filter = self._active_filter,
             active_sort   = self._active_sort,
-            last_scan     = "il y a 2 minutes",
-            active_folder = "F:/PS4 JailBreak/Games",
             status_msg    = self._status_msg,
+            count_str     = count_str,
         )
-        self._load_html(html)
+        self._load_html(html, show_back=False)
 
     def _show_folders(self):
         html = self._engine.render_folders(
@@ -482,7 +537,7 @@ class MainWindow(QMainWindow):
             stats      = self._get_stats(),
             status_msg = self._status_msg,
         )
-        self._load_html(html)
+        self._load_html(html, show_back=False)
 
     def _show_settings(self):
         html = self._engine.render_settings(
@@ -490,46 +545,35 @@ class MainWindow(QMainWindow):
             stats      = self._get_stats(),
             status_msg = self._status_msg,
         )
-        self._load_html(html)
+        self._load_html(html, show_back=False)
 
     def _show_credits(self):
         html = self._engine.render_credits(
             stats      = self._get_stats(),
             status_msg = self._status_msg,
         )
-        self._load_html(html)
+        self._load_html(html, show_back=False)
 
     def _show_detail(self, pkg_data: dict):
-        """Affiche le détail d'un jeu avec son contenu associé."""
+        """Affiche le détail avec les contenus associés."""
+        cusa = self._extract_cusa(pkg_data.get("content_id", ""))
 
-        base_cid = pkg_data.get("content_id", "")
-
-        # Extrait le CUSA du content_id
-        # Format : EP9000-CUSA24030_00-XXXXX
-        # On cherche le CUSA dans tous les packages
-        cusa = ""
-        for part in base_cid.replace("-", "_").split("_"):
-            if part.startswith("CUSA") or part.startswith("CUSE"):
-                cusa = part
-                break
-
-        # Trouve les contenus liés par CUSA identique
         if cusa:
             related = [
                 p for p in self._packages
                 if p.get("filepath") != pkg_data.get("filepath")
-                   and cusa in p.get("content_id", "")
+                and cusa in p.get("content_id", "")
             ]
         else:
             related = []
 
         html = self._engine.render_detail(
-            pkg_data=pkg_data,
-            related=related,
-            stats=self._get_stats(),
-            status_msg=self._status_msg,
+            pkg_data   = pkg_data,
+            related    = related,
+            stats      = self._get_stats(),
+            status_msg = self._status_msg,
         )
-        self._load_html(html)
+        self._load_html(html, show_back=True)
 
     # ------------------------------------------------------------------ #
     #  Slots                                                               #
@@ -537,10 +581,12 @@ class MainWindow(QMainWindow):
 
     def on_card_clicked(self, filepath: str):
         pkg = next(
-            (p for p in self._packages if p.get("filepath") == filepath),
+            (p for p in self._packages
+             if p.get("filepath") == filepath),
             None
         )
         if pkg:
+            self._previous_page = "library"
             self._show_detail(pkg)
 
     def on_search(self, text: str):
@@ -557,7 +603,9 @@ class MainWindow(QMainWindow):
 
     def on_add_folder(self):
         folder = QFileDialog.getExistingDirectory(
-            self, "Sélectionner un dossier PKG", "",
+            self,
+            "Sélectionner un dossier PKG",
+            "",
             QFileDialog.Option.ShowDirsOnly
         )
         if folder:
@@ -565,26 +613,38 @@ class MainWindow(QMainWindow):
 
     def on_delete_folder(self, path: str):
         reply = QMessageBox.question(
-            self, "Retirer le dossier",
+            self,
+            "Retirer le dossier",
             f"Retirer ce dossier de la bibliothèque ?\n\n{path}",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         if reply == QMessageBox.StandardButton.Yes:
-            self._folders = [f for f in self._folders if f["path"] != path]
+            self._folders = [
+                f for f in self._folders
+                if f["path"] != path
+            ]
             self._show_folders()
 
     def on_rename(self, filepath: str):
         old_name = os.path.basename(filepath)
         new_name, ok = QInputDialog.getText(
-            self, "Renommer", "Nouveau nom :", text=old_name
+            self,
+            "Renommer le fichier",
+            "Nouveau nom :",
+            text=old_name
         )
         if ok and new_name.strip() and new_name != old_name:
+            if not new_name.lower().endswith(".pkg"):
+                new_name += ".pkg"
             print(f"Renommer : {filepath} → {new_name}")
 
     def on_delete(self, filepath: str):
         reply = QMessageBox.warning(
-            self, "Supprimer",
-            f"Supprimer définitivement ?\n\n{os.path.basename(filepath)}",
+            self,
+            "Supprimer le fichier",
+            f"Supprimer définitivement ?\n\n"
+            f"{os.path.basename(filepath)}\n\n"
+            f"Cette action est irréversible.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -597,8 +657,12 @@ class MainWindow(QMainWindow):
 
     def on_open_related(self, content_id: str):
         pkg = next(
-            (p for p in self._packages if p.get("content_id") == content_id),
+            (p for p in self._packages
+             if p.get("content_id") == content_id),
             None
         )
         if pkg:
             self._show_detail(pkg)
+
+    def closeEvent(self, event):
+        event.accept()
