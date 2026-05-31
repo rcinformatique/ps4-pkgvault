@@ -9,6 +9,7 @@ from ui.widgets.status_bar import StatusBar
 from ui.pages.library_page import LibraryPage
 from ui.pages.detail_page import DetailPage
 from ui.pages.folders_page import FoldersPage
+from ui.pages.settings_page import SettingsPage
 
 
 SAMPLE_PACKAGES = [
@@ -178,6 +179,17 @@ class MainWindow(QMainWindow):
         self.folders_page.delete_requested.connect(self._on_delete_folder)
         self._stack.addWidget(self.folders_page)
 
+        # Settings page
+        self.settings_page = SettingsPage()
+        self.settings_page.settings_saved.connect(self._on_settings_saved)
+        self.settings_page.cache_clear_requested.connect(
+            self._on_cache_clear
+        )
+        self.settings_page.db_reset_requested.connect(
+            self._on_db_reset
+        )
+        self._stack.addWidget(self.settings_page)
+
         # StatusBar
         self.status_bar = StatusBar()
         self.setStatusBar(self.status_bar)
@@ -210,9 +222,21 @@ class MainWindow(QMainWindow):
         elif key == "folders":
             self._stack.setCurrentWidget(self.folders_page)
         elif key == "settings":
-            print("Settings — à venir")
+            self._stack.setCurrentWidget(self.settings_page)
         elif key == "credits":
             print("Credits — à venir")
+
+    def _on_settings_saved(self, data: dict):
+        print(f"Paramètres sauvegardés : {data}")
+        self.status_bar.set_message(
+            "Paramètres sauvegardés", "ok"
+        )
+
+    def _on_cache_clear(self):
+        print("Vider le cache")
+
+    def _on_db_reset(self):
+        print("Réinitialiser la BDD")
 
     def _on_pkg_selected(self, pkg_data: dict):
         """Ouvre la page de détail."""
