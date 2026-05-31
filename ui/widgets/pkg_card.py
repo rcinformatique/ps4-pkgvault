@@ -5,23 +5,19 @@ from PyQt6.QtWidgets import (
     QLabel, QSizePolicy, QMenu, QInputDialog,
     QMessageBox, QApplication
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QPixmap, QAction
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QSize
+from PyQt6.QtGui import QPixmap, QAction, QFont
 from ui.theme import Colors, Fonts, Dimensions, PKG_TYPES
-
-
-CARD_WIDTH  = 200
-CARD_HEIGHT = 310
 
 
 CARD_STYLE = f"""
     QWidget#pkg_card {{
         background: {Colors.BG_WHITE};
         border: 1px solid {Colors.BORDER};
-        border-radius: {Dimensions.CARD_RADIUS}px;
+        border-radius: 12px;
     }}
     QWidget#pkg_card:hover {{
-        border-color: {Colors.ACCENT};
+        border: 2px solid {Colors.ACCENT};
     }}
 """
 
@@ -29,7 +25,7 @@ CARD_SELECTED_STYLE = f"""
     QWidget#pkg_card {{
         background: {Colors.BG_WHITE};
         border: 2px solid {Colors.ACCENT};
-        border-radius: {Dimensions.CARD_RADIUS}px;
+        border-radius: 12px;
     }}
 """
 
@@ -37,7 +33,7 @@ CARD_FLASH_STYLE = f"""
     QWidget#pkg_card {{
         background: {Colors.BG_WHITE};
         border: 2px solid {Colors.SUCCESS};
-        border-radius: {Dimensions.CARD_RADIUS}px;
+        border-radius: 12px;
     }}
 """
 
@@ -45,15 +41,15 @@ CONTEXT_MENU_STYLE = f"""
     QMenu {{
         background-color: {Colors.BG_WHITE};
         border: 1px solid {Colors.BORDER};
-        border-radius: {Dimensions.RADIUS_LG}px;
+        border-radius: 10px;
         padding: 4px;
-        font-size: {Fonts.SIZE_MD}px;
+        font-size: 13px;
         color: {Colors.TEXT_PRIMARY};
         font-family: {Fonts.FAMILY};
     }}
     QMenu::item {{
-        padding: 7px 28px 7px 12px;
-        border-radius: {Dimensions.RADIUS_SM}px;
+        padding: 8px 28px 8px 12px;
+        border-radius: 6px;
     }}
     QMenu::item:selected {{
         background-color: {Colors.ACCENT_LIGHT};
@@ -69,23 +65,38 @@ CONTEXT_MENU_STYLE = f"""
     }}
 """
 
+TYPE_BG_COLORS = {
+    "game":     "#dce8f8",
+    "dlc":      "#d4ecd4",
+    "update":   "#d4e8f8",
+    "backport": "#f8e8d4",
+}
+
+TYPE_ICONS = {
+    "game":     "🎮",
+    "dlc":      "🧩",
+    "update":   "⬆️",
+    "backport": "⏮️",
+}
+
 
 class TypeBadge(QLabel):
-    """Badge coloré indiquant le type du PKG."""
+    """Badge coloré type PKG."""
 
     def __init__(self, pkg_type: str, parent=None):
         super().__init__(parent)
         info = PKG_TYPES.get(pkg_type, PKG_TYPES["game"])
         self.setText(info["label"])
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setFixedHeight(22)
         self.setStyleSheet(f"""
             QLabel {{
                 background: {info['badge']};
                 color: {info['text']};
-                border-radius: 4px;
-                font-size: 9px;
+                border-radius: 5px;
+                font-size: 11px;
                 font-weight: 700;
-                padding: 2px 7px;
+                padding: 2px 9px;
                 font-family: {Fonts.FAMILY};
             }}
         """)
@@ -93,11 +104,7 @@ class TypeBadge(QLabel):
 
 class PkgCard(QWidget):
     """
-    Carte PKG affichant la jaquette et les infos de base.
-
-    Signaux :
-        clicked(pkg_data)   → clic gauche
-        deleted(filepath)   → fichier supprimé
+    Carte PKG — s'étire pour remplir sa cellule de grille.
     """
 
     clicked = pyqtSignal(dict)
@@ -105,12 +112,18 @@ class PkgCard(QWidget):
 
     def __init__(self, pkg_data: dict, parent=None):
         super().__init__(parent)
-        self.pkg_data = pkg_data
+        self.pkg_data  = pkg_data
+        self._selected = False
         self.setObjectName("pkg_card")
         self.setStyleSheet(CARD_STYLE)
-        self.setFixedSize(CARD_WIDTH, CARD_HEIGHT)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._selected = False
+
+        # La carte s'étire horizontalement
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding
+        )
+        self.setMinimumHeight(300)
         self._build_ui()
 
     # ------------------------------------------------------------------ #
@@ -126,35 +139,44 @@ class PkgCard(QWidget):
         layout.addWidget(self._make_info())
 
     def _make_cover(self) -> QWidget:
-        """Zone jaquette avec badges superposés."""
         pkg_type = self.pkg_data.get("type", "game")
         info     = PKG_TYPES.get(pkg_type, PKG_TYPES["game"])
+        bg_color = TYPE_BG_COLORS.get(pkg_type, "#dce8f8")
 
-        # Conteneur cover
+        # Conteneur cover — ratio PS4 : 2:3
         cover = QWidget()
-        cover.setFixedSize(CARD_WIDTH, 267)
         cover.setStyleSheet(f"""
-            background: {info['bg']};
-            border-radius: {Dimensions.CARD_RADIUS}px
-                           {Dimensions.CARD_RADIUS}px 0px 0px;
+            background: {bg_color};
+            border-radius: 12px 12px 0px 0px;
         """)
+        cover.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed
+        )
+        cover.setFixedHeight(220)
+
+        cover_layout = QVBoxLayout(cover)
+        cover_layout.setContentsMargins(0, 0, 0, 0)
+        cover_layout.setSpacing(0)
 
         # Image / placeholder
-        self.cover_label = QLabel(cover)
-        self.cover_label.setFixedSize(CARD_WIDTH, 267)
+        self.cover_label = QLabel()
         self.cover_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.cover_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding
+        )
+        self.cover_label.setFixedHeight(220)
+        self.cover_label.setStyleSheet(
+            "background: transparent; font-size: 64px;"
+        )
         self.cover_label.setText(info["icon"])
-        self.cover_label.setStyleSheet(f"""
-            background: transparent;
-            font-size: 52px;
-            border-radius: {Dimensions.CARD_RADIUS}px
-                           {Dimensions.CARD_RADIUS}px 0px 0px;
-        """)
+        cover_layout.addWidget(self.cover_label)
 
-        # Badge type (haut gauche)
-        badge = TypeBadge(pkg_type, cover)
-        badge.move(8, 8)
-        badge.adjustSize()
+        # Badge type (haut gauche) — superposé
+        self._badge = TypeBadge(pkg_type, cover)
+        self._badge.move(10, 10)
+        self._badge.adjustSize()
 
         # Badge firmware (bas droite)
         firmware = self.pkg_data.get("firmware", "")
@@ -164,56 +186,56 @@ class PkgCard(QWidget):
                 background: rgba(255,255,255,0.92);
                 color: {Colors.TEXT_SECONDARY};
                 border: 1px solid {Colors.BORDER};
-                border-radius: 4px;
-                font-size: 9px;
-                padding: 2px 6px;
+                border-radius: 5px;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 3px 8px;
                 font-family: {Fonts.FAMILY};
             """)
             fw.adjustSize()
-            fw.move(
-                CARD_WIDTH - fw.width() - 8,
-                267 - fw.height() - 8
-            )
+            fw.move(0, 0)  # repositionné dans resizeEvent
+            self._fw_badge = fw
+        else:
+            self._fw_badge = None
 
         return cover
 
     def _make_info(self) -> QWidget:
-        """Zone infos sous la jaquette."""
         info_widget = QWidget()
         info_widget.setStyleSheet(f"""
             background: {Colors.BG_WHITE};
-            border-radius: 0px 0px
-                           {Dimensions.CARD_RADIUS}px
-                           {Dimensions.CARD_RADIUS}px;
+            border-radius: 0px 0px 12px 12px;
         """)
+        info_widget.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed
+        )
+
         layout = QVBoxLayout(info_widget)
-        layout.setContentsMargins(10, 8, 10, 10)
-        layout.setSpacing(3)
+        layout.setContentsMargins(12, 10, 12, 12)
+        layout.setSpacing(4)
 
         # Titre
         title_text = self.pkg_data.get("title", "Inconnu")
-        title = QLabel()
-        title.setStyleSheet(f"""
+        self._title_label = QLabel(title_text)
+        self._title_label.setStyleSheet(f"""
             color: {Colors.TEXT_PRIMARY};
-            font-size: {Fonts.SIZE_MD}px;
+            font-size: 14px;
             font-weight: 600;
             font-family: {Fonts.FAMILY};
             background: transparent;
         """)
-        fm     = title.fontMetrics()
-        elided = fm.elidedText(
-            title_text,
-            Qt.TextElideMode.ElideRight,
-            CARD_WIDTH - 20
-        )
-        title.setText(elided)
-        layout.addWidget(title)
+        self._title_label.setWordWrap(False)
+        layout.addWidget(self._title_label)
 
         # Content-ID
-        cid = QLabel(self.pkg_data.get("content_id", "")[:16])
+        cid_text = self.pkg_data.get("content_id", "")
+        if len(cid_text) > 20:
+            cid_text = cid_text[:20]
+        cid = QLabel(cid_text)
         cid.setStyleSheet(f"""
             color: {Colors.TEXT_HINT};
-            font-size: {Fonts.SIZE_SM}px;
+            font-size: 11px;
             font-family: {Fonts.FAMILY};
             background: transparent;
         """)
@@ -222,11 +244,12 @@ class PkgCard(QWidget):
         # Taille + Région
         bottom = QHBoxLayout()
         bottom.setSpacing(0)
+        bottom.setContentsMargins(0, 2, 0, 0)
 
         size = QLabel(self.pkg_data.get("size_str", ""))
         size.setStyleSheet(f"""
             color: {Colors.TEXT_MUTED};
-            font-size: {Fonts.SIZE_SM}px;
+            font-size: 12px;
             font-family: {Fonts.FAMILY};
             background: transparent;
         """)
@@ -234,7 +257,7 @@ class PkgCard(QWidget):
         region = QLabel(self.pkg_data.get("region", ""))
         region.setStyleSheet(f"""
             color: {Colors.TEXT_HINT};
-            font-size: {Fonts.SIZE_SM}px;
+            font-size: 11px;
             font-family: {Fonts.FAMILY};
             background: transparent;
         """)
@@ -248,14 +271,38 @@ class PkgCard(QWidget):
         return info_widget
 
     # ------------------------------------------------------------------ #
+    #  Resize — repositionne le badge FW                                  #
+    # ------------------------------------------------------------------ #
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self._fw_badge:
+            fw = self._fw_badge
+            fw.adjustSize()
+            # Bas droite de la cover
+            fw.move(
+                self.width() - fw.width() - 10,
+                self._badge.y() + 220 - fw.height() - 10
+            )
+        # Met à jour le titre tronqué
+        if hasattr(self, "_title_label"):
+            fm     = self._title_label.fontMetrics()
+            elided = fm.elidedText(
+                self.pkg_data.get("title", ""),
+                Qt.TextElideMode.ElideRight,
+                self.width() - 24
+            )
+            self._title_label.setText(elided)
+
+    # ------------------------------------------------------------------ #
     #  Jaquette                                                            #
     # ------------------------------------------------------------------ #
 
     def set_cover_pixmap(self, pixmap: QPixmap):
-        """Affiche une vraie jaquette."""
         if pixmap and not pixmap.isNull():
             scaled = pixmap.scaled(
-                CARD_WIDTH, 267,
+                self.cover_label.width(),
+                self.cover_label.height(),
                 Qt.AspectRatioMode.KeepAspectRatioByExpanding,
                 Qt.TransformationMode.SmoothTransformation
             )
@@ -263,19 +310,17 @@ class PkgCard(QWidget):
             self.cover_label.setText("")
 
     def set_selected(self, state: bool):
-        """Sélectionne / désélectionne la carte."""
         self._selected = state
         self.setStyleSheet(
             CARD_SELECTED_STYLE if state else CARD_STYLE
         )
 
     def flash(self):
-        """Flash vert pour confirmer une action."""
         self.setStyleSheet(CARD_FLASH_STYLE)
         QTimer.singleShot(700, lambda: self.setStyleSheet(CARD_STYLE))
 
     # ------------------------------------------------------------------ #
-    #  Événements souris                                                   #
+    #  Événements                                                          #
     # ------------------------------------------------------------------ #
 
     def mousePressEvent(self, event):
@@ -283,11 +328,9 @@ class PkgCard(QWidget):
             self.clicked.emit(self.pkg_data)
 
     def contextMenuEvent(self, event):
-        """Menu clic droit."""
         menu = QMenu(self)
         menu.setStyleSheet(CONTEXT_MENU_STYLE)
 
-        # Titre désactivé
         title_act = QAction(
             self.pkg_data.get("title", "Inconnu")[:40], self
         )
@@ -298,19 +341,17 @@ class PkgCard(QWidget):
         act_open   = QAction("📁  Ouvrir le dossier",   self)
         act_copy   = QAction("📋  Copier le chemin",     self)
         act_cid    = QAction("🔑  Copier le Content-ID", self)
+        act_rename = QAction("✏️  Renommer le fichier",  self)
+        act_delete = QAction("🗑️  Supprimer le fichier", self)
+
         menu.addAction(act_open)
         menu.addAction(act_copy)
         menu.addAction(act_cid)
         menu.addSeparator()
-
-        act_rename = QAction("✏️  Renommer le fichier",  self)
         menu.addAction(act_rename)
         menu.addSeparator()
-
-        act_delete = QAction("🗑️  Supprimer le fichier", self)
         menu.addAction(act_delete)
 
-        # Connexions
         act_open.triggered.connect(self._ctx_open_folder)
         act_copy.triggered.connect(self._ctx_copy_path)
         act_cid.triggered.connect(self._ctx_copy_cid)
@@ -360,7 +401,9 @@ class PkgCard(QWidget):
             self.pkg_data["filename"] = new_name
             self.flash()
         except OSError as e:
-            QMessageBox.critical(self, "Erreur", f"Impossible de renommer :\n{e}")
+            QMessageBox.critical(
+                self, "Erreur", f"Impossible de renommer :\n{e}"
+            )
 
     def _ctx_delete(self):
         filepath = self.pkg_data.get("filepath", "")
@@ -383,4 +426,6 @@ class PkgCard(QWidget):
             self.setParent(None)
             self.deleteLater()
         except OSError as e:
-            QMessageBox.critical(self, "Erreur", f"Impossible de supprimer :\n{e}")
+            QMessageBox.critical(
+                self, "Erreur", f"Impossible de supprimer :\n{e}"
+            )
