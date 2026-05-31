@@ -3,6 +3,7 @@ from PyQt6.QtCore import QSize
 from ui.theme import Colors
 from ui.topbar import Topbar
 from ui.subbar import Subbar
+from ui.widgets.status_bar import StatusBar
 
 
 class MainWindow(QMainWindow):
@@ -38,10 +39,13 @@ class MainWindow(QMainWindow):
         self.subbar.sort_changed.connect(self._on_sort_changed)
         self._layout.addWidget(self.subbar)
 
+        # StatusBar
+        self.status_bar = StatusBar()
+        self.setStatusBar(self.status_bar)
+        self.status_bar.set_ready()
+
     def _on_tab_changed(self, key: str):
-        # Subbar visible uniquement sur la bibliothèque
         self.subbar.setVisible(key == "library")
-        print(f"Tab: {key}")
 
     def _on_add_folder(self):
         print("Ajouter un dossier")
