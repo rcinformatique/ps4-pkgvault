@@ -1,6 +1,7 @@
 import os
 import subprocess
 import json
+import requests
 from pathlib import Path
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout,
@@ -8,278 +9,48 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
-from PyQt6.QtCore import QSize, QObject, pyqtSlot, QUrl
+from PyQt6.QtCore import QSize, QObject, pyqtSlot, QUrl, QThread, pyqtSignal
 from ui.template_engine import TemplateEngine
+from core.database import Database
+from core.scanner import scan_folder, count_by_type, format_total_size
+from core.cover_loader import CoverLoaderThread
+from core.api_client import ApiWorkerThread
 
 
-SAMPLE_PACKAGES = [
-    {
-        "title":        "Spider-Man Miles Morales",
-        "title_api":    "Marvel's Spider-Man: Miles Morales",
-        "type":         "game",
-        "content_id":   "EP9000-CUSA24030_00-SPIDERMANMM00001",
-        "size_bytes":   45_432_123_456,
-        "size_str":     "42.3 Go",
-        "firmware":     "9.00",
-        "region":       "Europe",
-        "filepath":     "F:/PS4/Spider-Man.pkg",
-        "filename":     "Spider-Man.pkg",
-        "app_ver":      "01.00",
-        "category":     "gd",
-        "developer":    "Insomniac Games",
-        "publisher":    "Sony Interactive Entertainment",
-        "release_date": "12 Novembre 2020",
-        "rating":       4.5,
-        "genres":       ["Action-Aventure", "Open World", "Super-héros"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Italien"],
-        "description":  "Dans Marvel's Spider-Man: Miles Morales, une nouvelle aventure épique prend vie dans les rues enneigées de New York. Lors d'un conflit entre une société d'énergie corrompue et une armée high-tech, Miles doit embrasser son rôle de Spider-Man.\n\nVivez les pouvoirs uniques de Miles, notamment sa bioélectricité et son camouflage, pour combattre des ennemis redoutables.",
-        "screenshots":  [],
-        "cover_path":   "",
-    },
-    {
-        "title":        "Spider-Man MM — Update v1.16",
-        "type":         "update",
-        "content_id":   "EP9000-CUSA24030_00-SPIDERMANMMUPD01",
-        "size_bytes":   2_200_000_000,
-        "size_str":     "2.1 Go",
-        "firmware":     None,
-        "region":       "Europe",
-        "filepath":     "F:/PS4/Spider-Man_Update.pkg",
-        "filename":     "Spider-Man_Update.pkg",
-        "app_ver":      "01.16",
-        "category":     "gp",
-        "screenshots":  [],
-        "languages":    [],
-        "cover_path":   "",
-    },
-    {
-        "title":        "Spider-Man MM — DLC Suits Pack",
-        "type":         "dlc",
-        "content_id":   "EP9000-CUSA24030_00-SPIDERMANMMDLC01",
-        "size_bytes":   860_000_000,
-        "size_str":     "0.8 Go",
-        "firmware":     None,
-        "region":       "Europe",
-        "filepath":     "F:/PS4/Spider-Man_DLC.pkg",
-        "filename":     "Spider-Man_DLC.pkg",
-        "app_ver":      "",
-        "category":     "ac",
-        "screenshots":  [],
-        "languages":    [],
-        "cover_path":   "",
-    },
-    {
-        "title":        "God of War Ragnarök",
-        "title_api":    "God of War: Ragnarök",
-        "type":         "game",
-        "content_id":   "EP9000-CUSA34674_00-GOWR000000000001",
-        "size_bytes":   96_821_145_600,
-        "size_str":     "90.1 Go",
-        "firmware":     "11.00",
-        "region":       "Europe",
-        "filepath":     "F:/PS4/GoW.pkg",
-        "filename":     "GoW.pkg",
-        "app_ver":      "01.00",
-        "category":     "gd",
-        "developer":    "Santa Monica Studio",
-        "publisher":    "Sony Interactive Entertainment",
-        "release_date": "9 Novembre 2022",
-        "rating":       4.8,
-        "genres":       ["Action-Aventure", "Mythologie nordique", "RPG"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Italien", "Portugais (BR)", "Russe"],
-        "description":  "Kratos et Atreus doivent voyager à travers les neuf royaumes pour trouver les réponses nécessaires à la survie du monde contre le Fimbulwinter imminent et le début du Ragnarök.\n\nContinuant l'histoire de God of War (2018), ce nouvel opus offre une aventure épique mêlant mythologie nordique, combats intenses et une relation père-fils au coeur du récit.",
-        "screenshots":  [],
-        "cover_path":   "",
-    },
-    {
-        "title":        "God of War Ragnarök — Update v2.0",
-        "type":         "update",
-        "content_id":   "EP9000-CUSA34674_00-GOWRUPDATE00001",
-        "size_bytes":   4_500_000_000,
-        "size_str":     "4.2 Go",
-        "firmware":     None,
-        "region":       "Europe",
-        "filepath":     "F:/PS4/GoW_Update.pkg",
-        "filename":     "GoW_Update.pkg",
-        "app_ver":      "02.00",
-        "category":     "gp",
-        "screenshots":  [],
-        "languages":    [],
-        "cover_path":   "",
-    },
-    {
-        "title":        "The Last of Us Part II",
-        "title_api":    "The Last of Us Part II",
-        "type":         "game",
-        "content_id":   "EP9000-CUSA07820_00-THELASTOFUS2001",
-        "size_bytes":   82_063_114_240,
-        "size_str":     "76.4 Go",
-        "firmware":     "7.55",
-        "region":       "Europe",
-        "filepath":     "F:/PS4/TLOU2.pkg",
-        "filename":     "TLOU2.pkg",
-        "app_ver":      "01.00",
-        "category":     "gd",
-        "developer":    "Naughty Dog",
-        "publisher":    "Sony Interactive Entertainment",
-        "release_date": "19 Juin 2020",
-        "rating":       4.2,
-        "genres":       ["Action-Aventure", "Survival Horror", "Post-apocalyptique"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Italien", "Japonais"],
-        "description":  "Cinq ans après leur périlleux voyage à travers les États-Unis post-pandémie, Ellie et Joel se sont installés à Jackson, Wyoming. En vivant parmi une communauté florissante de survivants, ils créent des liens, s'affrontent à des conflits et endurent des souffrances.\n\nWhen a violent event disrupts that peace, Ellie embarks on a relentless journey to carry out justice and find closure.",
-        "screenshots":  [],
-        "cover_path":   "",
-    },
-    {
-        "title":        "Ghost of Tsushima — Iki Island",
-        "title_api":    "Ghost of Tsushima — Iki Island DLC",
-        "type":         "dlc",
-        "content_id":   "EP9000-CUSA15398_00-GOTDLC000000001",
-        "size_bytes":   8_700_000_000,
-        "size_str":     "8.1 Go",
-        "firmware":     None,
-        "region":       "Europe",
-        "filepath":     "F:/PS4/GoT_DLC.pkg",
-        "filename":     "GoT_DLC.pkg",
-        "app_ver":      "",
-        "category":     "ac",
-        "developer":    "Sucker Punch Productions",
-        "publisher":    "Sony Interactive Entertainment",
-        "release_date": "16 Août 2021",
-        "rating":       4.3,
-        "genres":       ["Action-Aventure", "Monde ouvert", "Samouraï"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Japonais"],
-        "description":  "Explorez l'île d'Iki dans cette extension majeure de Ghost of Tsushima. Jin Sakai se rend sur cette île mystérieuse pour affronter une nouvelle menace mongole, tout en découvrant des secrets douloureux de son passé.",
-        "screenshots":  [],
-        "cover_path":   "",
-    },
-    {
-        "title":        "Cyberpunk 2077 — Phantom Liberty",
-        "title_api":    "Cyberpunk 2077: Phantom Liberty",
-        "type":         "dlc",
-        "content_id":   "EP9000-CUSA18534_00-CP77DLC00000001",
-        "size_bytes":   19_537_895_424,
-        "size_str":     "18.2 Go",
-        "firmware":     None,
-        "region":       "Europe",
-        "filepath":     "F:/PS4/CP77_DLC.pkg",
-        "filename":     "CP77_DLC.pkg",
-        "app_ver":      "",
-        "category":     "ac",
-        "developer":    "CD Projekt Red",
-        "publisher":    "CD Projekt",
-        "release_date": "26 Septembre 2023",
-        "rating":       4.4,
-        "genres":       ["RPG", "Action", "Cyberpunk", "Open World"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Polonais", "Russe"],
-        "description":  "Phantom Liberty est une nouvelle extension spy-thriller pour Cyberpunk 2077. Quand le vaisseau spatial de la présidente des États-Unis Unifiés d'Amérique est abattu au-dessus du district le plus dangereux de Night City, V est engagé pour une mission de sauvetage.",
-        "screenshots":  [],
-        "cover_path":   "",
-    },
-    {
-        "title":        "Elden Ring — Update v1.10",
-        "type":         "update",
-        "content_id":   "EP9000-CUSA28842_00-ELDENRING000001",
-        "size_bytes":   3_435_973_836,
-        "size_str":     "3.2 Go",
-        "firmware":     None,
-        "region":       "Europe",
-        "filepath":     "F:/PS4/EldenRing_Update.pkg",
-        "filename":     "EldenRing_Update.pkg",
-        "app_ver":      "01.10",
-        "category":     "gp",
-        "screenshots":  [],
-        "languages":    [],
-        "cover_path":   "",
-    },
-    {
-        "title":        "Bloodborne",
-        "title_api":    "Bloodborne",
-        "type":         "backport",
-        "content_id":   "EP9000-CUSE01264_00-BLOODBORNE00001",
-        "size_bytes":   24_268_374_016,
-        "size_str":     "22.6 Go",
-        "firmware":     "9.00",
-        "region":       "Europe",
-        "filepath":     "F:/PS4/Bloodborne_BP.pkg",
-        "filename":     "Bloodborne_BP.pkg",
-        "app_ver":      "01.09",
-        "category":     "gd",
-        "developer":    "FromSoftware",
-        "publisher":    "Sony Interactive Entertainment",
-        "release_date": "24 Mars 2015",
-        "rating":       4.7,
-        "genres":       ["Action-RPG", "Souls-like", "Horreur gothique"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Japonais"],
-        "description":  "Explorez les rues cauchemardesque de Yharnam, une ville antique rongée par une maladie du sang endémique. En tant que chasseur, découvrez ses mystères et combattez ses habitants devenus fous.\n\nBloodborne est un action-RPG intense qui récompense la bravoure et la maîtrise. Ce backport vous permet de jouer sur firmware 9.00.",
-        "screenshots":  [],
-        "cover_path":   "",
-    },
-    {
-        "title":        "Sekiro: Shadows Die Twice",
-        "title_api":    "Sekiro: Shadows Die Twice",
-        "type":         "backport",
-        "content_id":   "EP9000-CUSA13610_00-SEKIRO0000000001",
-        "size_bytes":   15_032_385_536,
-        "size_str":     "14.0 Go",
-        "firmware":     "9.00",
-        "region":       "Europe",
-        "filepath":     "F:/PS4/Sekiro_BP.pkg",
-        "filename":     "Sekiro_BP.pkg",
-        "app_ver":      "01.06",
-        "category":     "gd",
-        "developer":    "FromSoftware",
-        "publisher":    "Activision",
-        "release_date": "22 Mars 2019",
-        "rating":       4.6,
-        "genres":       ["Action-Aventure", "Souls-like", "Japon féodal"],
-        "languages":    ["Français", "Anglais (US)", "Espagnol", "Allemand", "Japonais"],
-        "description":  "Sekiro: Shadows Die Twice vous plonge dans le Japon féodal du XVIème siècle. Incarnez un shinobi déterminé à venger son seigneur et à briser la malédiction de la mort.\n\nMaîtrisez l'art du combat au katana, utilisez vos outils de shinobi et explorez un monde magnifique et brutal. Ce backport vous permet de profiter du jeu sur firmware 9.00.",
-        "screenshots":  [],
-        "cover_path":   "",
-    },
-]
+# ------------------------------------------------------------------ #
+#  Thread de scan                                                      #
+# ------------------------------------------------------------------ #
 
-SAMPLE_FOLDERS = [
-    {
-        "path":       "F:/PS4 JailBreak/Games",
-        "total":      8,
-        "game":       3,
-        "dlc":        2,
-        "update":     2,
-        "backport":   2,
-        "size_str":   "261 Go",
-        "date_added": "2026-05-31",
-    },
-    {
-        "path":       "E:/Backups/PKG",
-        "total":      3,
-        "game":       0,
-        "dlc":        1,
-        "update":     1,
-        "backport":   0,
-        "size_str":   "36 Go",
-        "date_added": "2026-05-31",
-    },
-]
+class ScanThread(QThread):
+    """Scanne un dossier en arrière-plan."""
+
+    scan_done    = pyqtSignal(list, list)
+    progress     = pyqtSignal(int, int)
+
+    def __init__(self, folders: list[str], db: Database, parent=None):
+        super().__init__(parent)
+        self._folders = folders
+        self._db      = db
+
+    def run(self):
+        all_packages = []
+        all_errors   = []
+
+        for folder in self._folders:
+            pkgs, errors = scan_folder(
+                folder,
+                db=self._db,
+                progress_callback=lambda c, t: self.progress.emit(c, t)
+            )
+            all_packages.extend(pkgs)
+            all_errors.extend(errors)
+
+        self.scan_done.emit(all_packages, all_errors)
 
 
-def _compute_stats(packages: list[dict]) -> dict:
-    counts      = {"game": 0, "dlc": 0, "update": 0, "backport": 0}
-    total_bytes = 0
-    for pkg in packages:
-        t = pkg.get("type", "game")
-        if t in counts:
-            counts[t] += 1
-        total_bytes += pkg.get("size_bytes", 0)
-    if total_bytes >= 1_073_741_824:
-        size_str = f"{total_bytes / 1_073_741_824:.1f} Go"
-        total_go = f"{total_bytes / 1_073_741_824:.0f}"
-    else:
-        size_str = f"{total_bytes / 1_048_576:.0f} Mo"
-        total_go = "0"
-    return {**counts, "total_size": size_str, "total_go": total_go}
-
+# ------------------------------------------------------------------ #
+#  PyBridge                                                            #
+# ------------------------------------------------------------------ #
 
 class PyBridge(QObject):
     """Pont Python ↔ JavaScript."""
@@ -342,7 +113,7 @@ class PyBridge(QObject):
 
     @pyqtSlot(str)
     def rescan_folder(self, path: str):
-        print(f"Rescan : {path}")
+        self._win.on_rescan_folder(path)
 
     @pyqtSlot(str)
     def delete_folder(self, path: str):
@@ -350,23 +121,19 @@ class PyBridge(QObject):
 
     @pyqtSlot(str)
     def save_settings(self, json_str: str):
-        try:
-            data = json.loads(json_str)
-            print(f"Paramètres sauvegardés : {data}")
-        except json.JSONDecodeError:
-            pass
+        self._win.on_save_settings(json_str)
 
     @pyqtSlot(str)
     def test_rawg(self, key: str):
-        print(f"Test RAWG : {key[:8]}…")
+        self._win.on_test_rawg(key)
 
     @pyqtSlot()
     def clear_cache(self):
-        print("Vider le cache")
+        self._win.on_clear_cache()
 
     @pyqtSlot()
     def reset_db(self):
-        print("Réinitialiser la BDD")
+        self._win.on_reset_db()
 
     @pyqtSlot()
     def toggle_view(self):
@@ -377,23 +144,29 @@ class PyBridge(QObject):
         self._win.on_open_related(content_id)
 
 
+# ------------------------------------------------------------------ #
+#  MainWindow                                                          #
+# ------------------------------------------------------------------ #
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self._engine        = TemplateEngine()
-        self._packages      = list(SAMPLE_PACKAGES)
-        self._folders       = list(SAMPLE_FOLDERS)
-        self._settings      = {}
+        self._db            = Database()
+        self._packages      = []
         self._active_page   = "library"
         self._previous_page = "library"
         self._active_filter = "game"
         self._active_sort   = "title"
         self._search_text   = ""
-        self._status_msg    = "11 PKG chargés"
+        self._status_msg    = "Prêt"
+        self._scan_thread   = None
+        self._cover_thread  = None
+        self._api_thread    = None
 
         self._init_window()
         self._init_ui()
-        self._show_library()
+        self._restore_session()
 
     def _init_window(self):
         self.setWindowTitle("PS4 PKGVault")
@@ -417,6 +190,36 @@ class MainWindow(QMainWindow):
         layout.addWidget(self._web)
 
     # ------------------------------------------------------------------ #
+    #  Session                                                             #
+    # ------------------------------------------------------------------ #
+
+    def _restore_session(self):
+        """Charge les données au démarrage."""
+
+        # Charge depuis la BDD
+        cached = self._db.get_all_games()
+        if cached:
+            self._packages = cached
+            counts = self._db.count_by_type()
+            total  = self._db.get_total_size()
+            size_str = self._format_size(total)
+            self._status_msg = (
+                f"{len(cached)} PKG chargés depuis la base de données"
+            )
+
+        # Restaure le filtre
+        saved_filter = self._db.get_setting("active_filter", "game")
+        self._active_filter = saved_filter
+
+        # Affiche la bibliothèque
+        self._show_library()
+
+        # Rescanne les dossiers en arrière-plan
+        folders = self._db.get_folders()
+        if folders:
+            self._start_scan(folders)
+
+    # ------------------------------------------------------------------ #
     #  Navigation                                                          #
     # ------------------------------------------------------------------ #
 
@@ -424,6 +227,7 @@ class MainWindow(QMainWindow):
         if page != self._active_page:
             self._previous_page = self._active_page
         self._active_page = page
+
         if page == "library":
             self._show_library()
         elif page == "folders":
@@ -465,35 +269,46 @@ class MainWindow(QMainWindow):
         return html.replace("</head>", script + "</head>", 1)
 
     # ------------------------------------------------------------------ #
-    #  Stats & filtres                                                     #
+    #  Stats                                                               #
     # ------------------------------------------------------------------ #
 
     def _get_stats(self) -> dict:
-        return _compute_stats(self._packages)
+        counts      = {"game": 0, "dlc": 0, "update": 0, "backport": 0}
+        total_bytes = 0
+        for pkg in self._packages:
+            t = pkg.get("type", "game")
+            if t in counts:
+                counts[t] += 1
+            total_bytes += pkg.get("size_bytes", 0)
+        size_str = self._format_size(total_bytes)
+        total_go = f"{total_bytes / 1_073_741_824:.0f}" if total_bytes >= 1_073_741_824 else "0"
+        return {**counts, "total_size": size_str, "total_go": total_go}
+
+    def _format_size(self, size_bytes: int) -> str:
+        if size_bytes >= 1_073_741_824:
+            return f"{size_bytes / 1_073_741_824:.1f} Go"
+        if size_bytes >= 1_048_576:
+            return f"{size_bytes / 1_048_576:.0f} Mo"
+        return f"{size_bytes / 1024:.0f} Ko"
 
     def _get_filtered_packages(self) -> list[dict]:
         pkgs = self._packages.copy()
 
         if self._active_filter != "all":
-            pkgs = [
-                p for p in pkgs
-                if p.get("type") == self._active_filter
-            ]
+            pkgs = [p for p in pkgs if p.get("type") == self._active_filter]
 
         if self._search_text:
             q = self._search_text.lower()
             pkgs = [
                 p for p in pkgs
-                if q in p.get("title", "").lower()
-                or q in p.get("title_api", "").lower()
-                or q in p.get("content_id", "").lower()
+                if q in (p.get("title") or "").lower()
+                or q in (p.get("title_api") or "").lower()
+                or q in (p.get("content_id") or "").lower()
             ]
 
         def sort_key(p):
             if self._active_sort == "title":
-                return (
-                    p.get("title_api") or p.get("title") or ""
-                ).lower()
+                return (p.get("title_api") or p.get("title") or "").lower()
             if self._active_sort == "size":
                 return p.get("size_bytes", 0)
             if self._active_sort == "type":
@@ -504,7 +319,6 @@ class MainWindow(QMainWindow):
         return pkgs
 
     def _extract_cusa(self, content_id: str) -> str:
-        """Extrait le CUSA/CUSE depuis un content_id."""
         for part in content_id.replace("-", "_").split("_"):
             if part.startswith("CUSA") or part.startswith("CUSE"):
                 return part
@@ -532,16 +346,18 @@ class MainWindow(QMainWindow):
         self._load_html(html, show_back=False)
 
     def _show_folders(self):
+        folders = self._db.get_folders_full()
         html = self._engine.render_folders(
-            folders    = self._folders,
+            folders    = folders,
             stats      = self._get_stats(),
             status_msg = self._status_msg,
         )
         self._load_html(html, show_back=False)
 
     def _show_settings(self):
+        settings = self._db.get_all_settings()
         html = self._engine.render_settings(
-            settings   = self._settings,
+            settings   = settings,
             stats      = self._get_stats(),
             status_msg = self._status_msg,
         )
@@ -555,17 +371,14 @@ class MainWindow(QMainWindow):
         self._load_html(html, show_back=False)
 
     def _show_detail(self, pkg_data: dict):
-        """Affiche le détail avec les contenus associés."""
-        cusa = self._extract_cusa(pkg_data.get("content_id", ""))
-
+        cusa    = self._extract_cusa(pkg_data.get("content_id", ""))
+        related = []
         if cusa:
             related = [
                 p for p in self._packages
                 if p.get("filepath") != pkg_data.get("filepath")
                 and cusa in p.get("content_id", "")
             ]
-        else:
-            related = []
 
         html = self._engine.render_detail(
             pkg_data   = pkg_data,
@@ -576,15 +389,133 @@ class MainWindow(QMainWindow):
         self._load_html(html, show_back=True)
 
     # ------------------------------------------------------------------ #
-    #  Slots                                                               #
+    #  Scan                                                                #
+    # ------------------------------------------------------------------ #
+
+    def _start_scan(self, folders: list[str]):
+        """Lance le scan en arrière-plan."""
+        if self._scan_thread and self._scan_thread.isRunning():
+            self._scan_thread.quit()
+            self._scan_thread.wait()
+
+        self._status_msg = "Scan en cours…"
+        self._show_library()
+
+        self._scan_thread = ScanThread(folders, self._db)
+        self._scan_thread.scan_done.connect(self._on_scan_done)
+        self._scan_thread.start()
+
+    def _on_scan_done(self, packages: list, errors: list):
+        """Appelé quand le scan est terminé."""
+        self._packages   = packages
+        count            = len(packages)
+        self._status_msg = f"{count} PKG chargés"
+
+        if errors:
+            self._status_msg += f" · {len(errors)} ignorés"
+
+        self._show_library()
+
+        # Lance le chargement des covers
+        self._start_cover_loader(packages)
+
+        # Lance l'API pour les jeux sans données
+        self._start_api_worker()
+
+    # ------------------------------------------------------------------ #
+    #  Covers                                                              #
+    # ------------------------------------------------------------------ #
+
+    def _start_cover_loader(self, packages: list[dict]):
+        """Lance le chargement des jaquettes."""
+        if self._cover_thread and self._cover_thread.isRunning():
+            self._cover_thread.stop()
+            self._cover_thread.wait()
+
+        self._cover_thread = CoverLoaderThread(packages)
+        self._cover_thread.cover_ready.connect(self._on_cover_ready)
+        self._cover_thread.start()
+
+    def _on_cover_ready(self, content_id: str, cover_path: str):
+        """Jaquette disponible — met à jour la BDD."""
+        self._db.update_cover(content_id, cover_path)
+        # Met à jour le package en mémoire
+        for pkg in self._packages:
+            if pkg.get("content_id") == content_id:
+                pkg["cover_path"] = cover_path
+                break
+
+    # ------------------------------------------------------------------ #
+    #  API Worker                                                          #
+    # ------------------------------------------------------------------ #
+
+    def _start_api_worker(self):
+        """Lance la récupération API."""
+        rawg_key        = self._db.get_setting("rawg_api_key", "")
+        igdb_client_id  = self._db.get_setting("igdb_client_id", "")
+        igdb_secret     = self._db.get_setting("igdb_client_secret", "")
+        auto_fetch      = self._db.get_setting("auto_fetch", "1")
+
+        if auto_fetch != "1" or not rawg_key:
+            return
+
+        unfetched = self._db.get_unfetched()
+        if not unfetched:
+            return
+
+        if self._api_thread and self._api_thread.isRunning():
+            self._api_thread.stop()
+            self._api_thread.wait()
+
+        self._api_thread = ApiWorkerThread(
+            games              = unfetched,
+            rawg_api_key       = rawg_key,
+            igdb_client_id     = igdb_client_id,
+            igdb_client_secret = igdb_secret,
+        )
+        self._api_thread.game_updated.connect(self._on_game_updated)
+        self._api_thread.cover_ready.connect(self._on_cover_ready)
+        self._api_thread.status_message.connect(self._on_api_status)
+        self._api_thread.finished_all.connect(self._on_api_finished)
+        self._api_thread.start()
+
+    def _on_game_updated(self, content_id: str, api_data: dict):
+        """Données API reçues — met à jour BDD et packages."""
+        self._db.update_api_data(content_id, api_data)
+        for pkg in self._packages:
+            if pkg.get("content_id") == content_id:
+                pkg.update({
+                    "title_api":    api_data.get("title_api", ""),
+                    "description":  api_data.get("description", ""),
+                    "developer":    api_data.get("developer", ""),
+                    "publisher":    api_data.get("publisher", ""),
+                    "release_date": api_data.get("release_date", ""),
+                    "genres":       api_data.get("genres", []),
+                    "rating":       api_data.get("rating", 0),
+                    "screenshots":  api_data.get("screenshots", []),
+                    "video_url":    api_data.get("video_url", ""),
+                })
+                break
+
+    def _on_api_status(self, msg: str):
+        self._status_msg = msg
+
+    def _on_api_finished(self):
+        self._status_msg = "Données API récupérées"
+        self._packages   = self._db.get_all_games()
+        self._show_library()
+
+    # ------------------------------------------------------------------ #
+    #  Slots utilisateur                                                   #
     # ------------------------------------------------------------------ #
 
     def on_card_clicked(self, filepath: str):
-        pkg = next(
-            (p for p in self._packages
-             if p.get("filepath") == filepath),
-            None
-        )
+        pkg = self._db.get_game_by_filepath(filepath)
+        if not pkg:
+            pkg = next(
+                (p for p in self._packages if p.get("filepath") == filepath),
+                None
+            )
         if pkg:
             self._previous_page = "library"
             self._show_detail(pkg)
@@ -595,6 +526,7 @@ class MainWindow(QMainWindow):
 
     def on_filter(self, key: str):
         self._active_filter = key
+        self._db.set_setting("active_filter", key)
         self._show_library()
 
     def on_sort(self, key: str):
@@ -608,35 +540,66 @@ class MainWindow(QMainWindow):
             "",
             QFileDialog.Option.ShowDirsOnly
         )
-        if folder:
-            print(f"Dossier ajouté : {folder}")
+        if not folder:
+            return
+
+        added = self._db.add_folder(folder)
+        if not added:
+            QMessageBox.information(
+                self,
+                "Dossier déjà présent",
+                f"Ce dossier est déjà dans votre bibliothèque :\n{folder}"
+            )
+            return
+
+        folders = self._db.get_folders()
+        self._start_scan(folders)
+
+    def on_rescan_folder(self, path: str):
+        """Rescanne un dossier spécifique."""
+        folders = self._db.get_folders()
+        if path in folders:
+            self._start_scan([path])
 
     def on_delete_folder(self, path: str):
         reply = QMessageBox.question(
             self,
             "Retirer le dossier",
-            f"Retirer ce dossier de la bibliothèque ?\n\n{path}",
+            f"Retirer ce dossier de la bibliothèque ?\n\n{path}\n\n"
+            f"Les fichiers PKG ne seront pas supprimés.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
-        if reply == QMessageBox.StandardButton.Yes:
-            self._folders = [
-                f for f in self._folders
-                if f["path"] != path
-            ]
-            self._show_folders()
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self._db.remove_folder(path)
+        self._packages = self._db.get_all_games()
+        self._show_folders()
 
     def on_rename(self, filepath: str):
         old_name = os.path.basename(filepath)
         new_name, ok = QInputDialog.getText(
-            self,
-            "Renommer le fichier",
-            "Nouveau nom :",
-            text=old_name
+            self, "Renommer le fichier",
+            "Nouveau nom :", text=old_name
         )
-        if ok and new_name.strip() and new_name != old_name:
-            if not new_name.lower().endswith(".pkg"):
-                new_name += ".pkg"
-            print(f"Renommer : {filepath} → {new_name}")
+        if not ok or not new_name.strip() or new_name == old_name:
+            return
+        if not new_name.lower().endswith(".pkg"):
+            new_name += ".pkg"
+        new_path = os.path.join(os.path.dirname(filepath), new_name)
+        try:
+            os.rename(filepath, new_path)
+            for pkg in self._packages:
+                if pkg.get("filepath") == filepath:
+                    pkg["filepath"] = new_path
+                    pkg["filename"] = new_name
+                    break
+            self._db.delete_by_filepath(filepath)
+        except OSError as e:
+            QMessageBox.critical(
+                self, "Erreur",
+                f"Impossible de renommer :\n{e}"
+            )
 
     def on_delete(self, filepath: str):
         reply = QMessageBox.warning(
@@ -648,21 +611,116 @@ class MainWindow(QMainWindow):
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
-        if reply == QMessageBox.StandardButton.Yes:
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            os.remove(filepath)
+            self._db.delete_by_filepath(filepath)
             self._packages = [
                 p for p in self._packages
                 if p.get("filepath") != filepath
             ]
             self._show_library()
+        except OSError as e:
+            QMessageBox.critical(
+                self, "Erreur",
+                f"Impossible de supprimer :\n{e}"
+            )
 
     def on_open_related(self, content_id: str):
-        pkg = next(
-            (p for p in self._packages
-             if p.get("content_id") == content_id),
-            None
-        )
+        pkg = self._db.get_game(content_id)
+        if not pkg:
+            pkg = next(
+                (p for p in self._packages
+                 if p.get("content_id") == content_id),
+                None
+            )
         if pkg:
             self._show_detail(pkg)
 
+    def on_save_settings(self, json_str: str):
+        try:
+            data = json.loads(json_str)
+            for key, value in data.items():
+                self._db.set_setting(key, str(value))
+            self._status_msg = "Paramètres sauvegardés"
+            self._show_settings()
+        except json.JSONDecodeError:
+            pass
+
+    def on_test_rawg(self, key: str):
+        """Teste la clé API RAWG."""
+        if not key:
+            return
+        try:
+            resp = requests.get(
+                "https://api.rawg.io/api/games",
+                params={"key": key, "page_size": 1},
+                timeout=5
+            )
+            if resp.status_code == 200:
+                QMessageBox.information(
+                    self, "RAWG.io",
+                    "✅ Clé API valide !"
+                )
+            else:
+                QMessageBox.warning(
+                    self, "RAWG.io",
+                    f"❌ Clé invalide (code {resp.status_code})"
+                )
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", str(e))
+
+    def on_clear_cache(self):
+        reply = QMessageBox.question(
+            self, "Vider le cache",
+            "Supprimer toutes les jaquettes en cache ?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        from core.cover_loader import COVERS_DIR, SCREENSHOTS_DIR
+        import shutil
+        for d in [COVERS_DIR, SCREENSHOTS_DIR]:
+            if d.exists():
+                shutil.rmtree(d)
+                d.mkdir(parents=True)
+
+        self._status_msg = "Cache vidé"
+        self._show_settings()
+
+    def on_reset_db(self):
+        reply = QMessageBox.warning(
+            self, "Réinitialiser la base de données",
+            "Supprimer tous les jeux indexés ?\n\n"
+            "Les fichiers PKG ne seront pas affectés.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self._db.close()
+        from core.database import DB_PATH
+        if DB_PATH.exists():
+            DB_PATH.unlink()
+        self._db          = Database()
+        self._packages    = []
+        self._status_msg  = "Base de données réinitialisée"
+        self._show_library()
+
+    # ------------------------------------------------------------------ #
+    #  Fermeture                                                           #
+    # ------------------------------------------------------------------ #
+
     def closeEvent(self, event):
+        for thread in [self._scan_thread, self._cover_thread, self._api_thread]:
+            if thread and thread.isRunning():
+                if hasattr(thread, "stop"):
+                    thread.stop()
+                thread.quit()
+                thread.wait()
+        self._db.close()
         event.accept()
