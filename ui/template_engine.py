@@ -1,5 +1,5 @@
-import os
 from pathlib import Path
+from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
@@ -12,11 +12,72 @@ TYPE_INFO = {
     "backport": {"label": "BACKPORT", "icon": "⏮️", "bg": "#f8e8d4", "badge": "#ca5010"},
 }
 
+DEFAULT_STATS = {
+    "game": 0, "dlc": 0, "update": 0,
+    "backport": 0, "total_size": "0 Go", "total_go": "0",
+}
+
+DEFAULT_SETTINGS = {
+    "rawg_api_key":   "",
+    "igdb_client_id": "",
+    "auto_fetch":     True,
+    "card_min_width": 180,
+    "language":       "fr",
+    "cache_info":     "cache/covers/ · 0 fichiers",
+}
+
+
+def _normalize_pkg(pkg: dict) -> dict:
+    """Ajoute les infos de type à un dict PKG."""
+    pkg_type = pkg.get("type", "game")
+    info     = TYPE_INFO.get(pkg_type, TYPE_INFO["game"])
+    cover    = pkg.get("cover_path", "")
+    if cover:
+        cover = cover.replace("\\", "/")
+    screenshots = [
+        s.replace("\\", "/")
+        for s in pkg.get("screenshots", [])
+    ]
+    return {
+        **pkg,
+        "type_label":  info["label"],
+        "type_icon":   info["icon"],
+        "type_bg":     info["bg"],
+        "type_badge":  info["badge"],
+        "cover_path":  cover,
+        "screenshots": screenshots,
+    }
+
+
+def _base_context(
+    active_page: str,
+    stats: dict = None,
+    status_msg: str = "Prêt",
+    active_filter: str = "all",
+    active_sort: str = "title",
+    count_str: str = "0 fichiers",
+) -> dict:
+    """Contexte commun à toutes les pages."""
+    s = stats or DEFAULT_STATS
+    return {
+        "active_page":   active_page,
+        "active_filter": active_filter,
+        "active_sort":   active_sort,
+        "count_str":     count_str,
+        "status_msg":    status_msg,
+        "stats": {
+            "game":       s.get("game", 0),
+            "dlc":        s.get("dlc", 0),
+            "update":     s.get("update", 0),
+            "backport":   s.get("backport", 0),
+            "total_size": s.get("total_size", "0 Go"),
+            "total_go":   s.get("total_go", "0"),
+        },
+    }
+
 
 class TemplateEngine:
-    """
-    Moteur Jinja2 pour générer le HTML des pages riches.
-    """
+    """Moteur Jinja2 pour toutes les pages de PS4 PKGVault."""
 
     def __init__(self):
         self._env = Environment(
@@ -24,53 +85,79 @@ class TemplateEngine:
             autoescape=select_autoescape(["html"]),
         )
 
+    def _render(self, template_name: str, context: dict) -> str:
+        tpl = self._env.get_template(template_name)
+        return tpl.render(**context)
+
+    def render_library(
+            self,
+            packages: list[dict],
+            stats: dict = None,
+            active_filter: str = "all",
+            active_sort: str = "title",
+            last_scan: str = "",
+            active_folder: str = "",
+            status_msg: str = "Prêt",
+            count_str: str = "0 fichiers",
+    ) -> str:
+        s = stats or DEFAULT_STATS
+        if not count_str:
+            total = len(packages)
+            size = s.get("total_size", "0 Go")
+            count_str = f"{total} fichier{'s' if total > 1 else ''} · {size}"
+
+        ctx = _base_context(
+            "library", stats, status_msg,
+            active_filter, active_sort, count_str
+        )
+        ctx.update({
+            "packages": [_normalize_pkg(p) for p in packages],
+            "last_scan": last_scan,
+            "active_folder": active_folder,
+        })
+        return self._render("library.html", ctx)
+
     def render_detail(
         self,
         pkg_data: dict,
-        related: list[dict] = None
+        related: list[dict] = None,
+        stats: dict = None,
+        status_msg: str = "Prêt",
     ) -> str:
-        """
-        Génère le HTML de la page de détail.
-        pkg_data : dictionnaire du PKG
-        related  : liste des PKG associés (DLC, UPDATE, BACKPORT)
-        """
-        template  = self._env.get_template("detail.html")
-        pkg_type  = pkg_data.get("type", "game")
-        type_info = TYPE_INFO.get(pkg_type, TYPE_INFO["game"])
+        related_norm = [
+            _normalize_pkg(r) for r in (related or [])
+        ]
+        ctx = _base_context("detail", stats, status_msg)
+        ctx.update({
+            "pkg":     _normalize_pkg(pkg_data),
+            "related": related_norm,
+        })
+        return self._render("detail.html", ctx)
 
-        # Prépare les related avec leurs infos de type
-        related_data = []
-        for rel in (related or []):
-            rel_type = rel.get("type", "game")
-            rel_info = TYPE_INFO.get(rel_type, TYPE_INFO["game"])
-            related_data.append({
-                **rel,
-                "type_label": rel_info["label"],
-                "type_icon":  rel_info["icon"],
-                "type_bg":    rel_info["bg"],
-                "type_badge": rel_info["badge"],
-            })
+    def render_folders(
+        self,
+        folders: list[dict],
+        stats: dict = None,
+        status_msg: str = "Prêt",
+    ) -> str:
+        ctx = _base_context("folders", stats, status_msg)
+        ctx["folders"] = folders
+        return self._render("folders.html", ctx)
 
-        # Normalise les chemins Windows pour les URLs file:///
-        cover_path = pkg_data.get("cover_path", "")
-        if cover_path:
-            cover_path = cover_path.replace("\\", "/")
+    def render_settings(
+        self,
+        settings: dict = None,
+        stats: dict = None,
+        status_msg: str = "Prêt",
+    ) -> str:
+        ctx = _base_context("settings", stats, status_msg)
+        ctx["settings"] = {**DEFAULT_SETTINGS, **(settings or {})}
+        return self._render("settings.html", ctx)
 
-        screenshots = []
-        for s in pkg_data.get("screenshots", []):
-            screenshots.append(s.replace("\\", "/"))
-
-        pkg_normalized = {
-            **pkg_data,
-            "cover_path":  cover_path,
-            "screenshots": screenshots,
-        }
-
-        return template.render(
-            pkg=pkg_normalized,
-            type_label=type_info["label"],
-            type_icon=type_info["icon"],
-            type_bg=type_info["bg"],
-            type_badge=type_info["badge"],
-            related=related_data,
-        )
+    def render_credits(
+        self,
+        stats: dict = None,
+        status_msg: str = "Prêt",
+    ) -> str:
+        ctx = _base_context("credits", stats, status_msg)
+        return self._render("credits.html", ctx)
