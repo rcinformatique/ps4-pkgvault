@@ -13,7 +13,7 @@
 .folder-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--r-xl);
+  border-radius: 16px;
   padding: 18px 20px;
   display: flex;
   align-items: center;
@@ -25,7 +25,7 @@
 .folder-icon {
   width: 48px;
   height: 48px;
-  border-radius: var(--r-lg);
+  border-radius: 12px;
   background: var(--accent-l);
   display: flex;
   align-items: center;
@@ -34,23 +34,18 @@
   flex-shrink: 0;
 }
 
-.folder-info { flex: 1; }
+.folder-info { flex: 1; min-width: 0; }
 .folder-path {
   font-size: 14px;
   font-weight: 600;
   color: var(--tp);
   margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.folder-meta {
-  font-size: 12px;
-  color: var(--tm);
-  margin-bottom: 8px;
-}
-.folder-pills {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
+.folder-meta { font-size: 12px; color: var(--tm); margin-bottom: 8px; }
+.folder-pills { display: flex; gap: 6px; flex-wrap: wrap; }
 .folder-pill {
   font-size: 11px;
   padding: 2px 10px;
@@ -65,18 +60,14 @@
   flex-direction: column;
   gap: 6px;
   align-items: flex-end;
+  flex-shrink: 0;
 }
-.folder-size {
-  font-size: 13px;
-  color: var(--tm);
-  font-weight: 500;
-  margin-bottom: 4px;
-}
+.folder-size { font-size: 13px; color: var(--tm); font-weight: 500; margin-bottom: 4px; }
 
 .add-folder-card {
   background: var(--white);
   border: 2px dashed var(--accent-b);
-  border-radius: var(--r-xl);
+  border-radius: 16px;
   padding: 20px;
   display: flex;
   align-items: center;
@@ -87,17 +78,15 @@
   font-size: 14px;
   font-weight: 500;
   transition: all 0.15s;
+  min-height: 64px;
 }
-.add-folder-card:hover {
-  background: var(--accent-l);
-  border-color: var(--accent);
-}
+.add-folder-card:hover { background: var(--accent-l); border-color: var(--accent); }
 {% endblock %}
 
 {% block content %}
 <div class="folders-scroll">
 
-  <div class="page-header" style="padding: 0 0 8px;">
+  <div style="padding: 0 0 8px;">
     <div class="page-title">Dossiers</div>
     <div class="page-subtitle">
       Gérez les dossiers contenant vos fichiers PKG.
@@ -110,26 +99,24 @@
     <div class="folder-card">
       <div class="folder-icon">📁</div>
       <div class="folder-info">
-        <div class="folder-path">{{ folder.path }}</div>
+        <div class="folder-path" title="{{ folder.path }}">{{ folder.path }}</div>
         <div class="folder-meta">
           {{ folder.total }} fichier{{ 's' if folder.total > 1 else '' }}
-          {% if folder.date_added %} · Ajouté le {{ folder.date_added[:10] }}{% endif %}
+          {% if folder.date_added %} · Ajouté le {{ folder.date_added }}{% endif %}
         </div>
         <div class="folder-pills">
           <span class="folder-pill">🎮 {{ folder.game }} Jeux</span>
           <span class="folder-pill">🧩 {{ folder.dlc }} DLC</span>
-          <span class="folder-pill">⬆ {{ folder.update }} Updates</span>
+          <span class="folder-pill">⬆ {{ folder['update'] }} Updates</span>
           <span class="folder-pill">⏮ {{ folder.backport }} Backports</span>
         </div>
       </div>
       <div class="folder-actions">
         <div class="folder-size">{{ folder.size_str }}</div>
-        <button class="btn btn-secondary"
-          onclick="pybridge.rescan_folder('{{ folder.path|e }}')">
+        <button class="btn btn-secondary" onclick="rescanFolder({{ loop.index0 }})">
           🔄 Rescanner
         </button>
-        <button class="btn btn-danger"
-          onclick="pybridge.delete_folder('{{ folder.path|e }}')">
+        <button class="btn btn-danger" onclick="deleteFolder({{ loop.index0 }})">
           🗑️ Retirer
         </button>
       </div>
@@ -144,9 +131,25 @@
   {% endif %}
 
   <div class="add-folder-card"
-    onclick="pybridge.add_folder()">
+    onclick="_callBridge(function(b){ b.add_folder(); })">
     ➕ Ajouter un dossier PKG
   </div>
 
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+var _folders = {{ folders | tojson }};
+
+function deleteFolder(index) {
+  _callBridge(function(b) {
+    b.delete_folder(_folders[index].path);
+  });
+}
+
+function rescanFolder(index) {
+  _callBridge(function(b) {
+    b.rescan_folder(_folders[index].path);
+  });
+}
 {% endblock %}
