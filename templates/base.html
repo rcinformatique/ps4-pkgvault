@@ -211,18 +211,36 @@ html, body {
 /* STATUSBAR */
 .statusbar {
   background: var(--white);
-  height: 26px;
+  height: 30px;
   display: flex;
   align-items: center;
   padding: 0 20px;
-  gap: 12px;
+  gap: 14px;
   border-top: 1px solid var(--border-l);
   flex-shrink: 0;
 }
-.sb-item { font-size: 10px; color: var(--th); display: flex; align-items: center; gap: 4px; }
-.sb-dot { width: 6px; height: 6px; border-radius: 50%; }
-.sb-sep { color: var(--border); font-size: 12px; }
-.sb-msg { font-size: 10px; color: var(--accent); margin-left: auto; }
+.sb-item {
+  font-size: 11px;
+  color: var(--ts);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.sb-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.sb-sep { color: var(--border); font-size: 14px; }
+.sb-msg {
+  font-size: 11px;
+  color: var(--accent);
+  margin-left: auto;
+  white-space: nowrap;
+  font-weight: 500;
+}
 
 /* BUTTONS */
 .btn {
@@ -360,17 +378,29 @@ html, body {
 
   <!-- STATUSBAR -->
   <div class="statusbar">
-    <div class="sb-item"><span class="sb-dot" style="background:#0067c0;"></span>Jeux {{ stats.game }}</div>
-    <span class="sb-sep">|</span>
-    <div class="sb-item"><span class="sb-dot" style="background:#107c10;"></span>DLC {{ stats.dlc }}</div>
-    <span class="sb-sep">|</span>
-    <div class="sb-item"><span class="sb-dot" style="background:#0078d4;"></span>Updates {{ stats.update }}</div>
-    <span class="sb-sep">|</span>
-    <div class="sb-item"><span class="sb-dot" style="background:#ca5010;"></span>Backports {{ stats.backport }}</div>
-    <span class="sb-sep">|</span>
-    <div class="sb-item">{{ stats.total_size }}</div>
-    <div class="sb-msg">{{ status_msg }}</div>
+  <div class="sb-item">
+    <span class="sb-dot" style="background:#0067c0;"></span>
+    Jeux {{ stats.game }}
   </div>
+  <span class="sb-sep">|</span>
+  <div class="sb-item">
+    <span class="sb-dot" style="background:#107c10;"></span>
+    DLC {{ stats.dlc }}
+  </div>
+  <span class="sb-sep">|</span>
+  <div class="sb-item">
+    <span class="sb-dot" style="background:#0078d4;"></span>
+    Updates {{ stats.update }}
+  </div>
+  <span class="sb-sep">|</span>
+  <div class="sb-item">
+    <span class="sb-dot" style="background:#ca5010;"></span>
+    Backports {{ stats.backport }}
+  </div>
+  <span class="sb-sep">|</span>
+  <div class="sb-item">{{ stats.total_size }}</div>
+  <div class="sb-msg">{{ status_msg }}</div>
+</div>
 
 </div>
 
