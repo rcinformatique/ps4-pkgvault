@@ -385,41 +385,52 @@ class Database:
     def get_folders_full(self) -> list[dict]:
         """Retourne les dossiers avec leurs stats."""
         folders = self.get_folders()
-        result  = []
+        result = []
+
         for path in folders:
             cur = self._conn.execute(
                 "SELECT date_added FROM folders WHERE path = ?", (path,)
             )
-            row        = cur.fetchone()
-            date_added = row["date_added"] if row else ""
+            row = cur.fetchone()
+            date_added = row["date_added"][:10] if row else ""
+
+            # Normalise le chemin pour la comparaison
+            path_normalized = path.replace("\\", "/")
+            path_normalized_bs = path.replace("/", "\\")
 
             counts = {"game": 0, "dlc": 0, "update": 0, "backport": 0}
             total_bytes = 0
+
             cur2 = self._conn.execute(
-                "SELECT type, size_bytes FROM games WHERE filepath LIKE ?",
-                (f"{path}%",)
+                "SELECT type, size_bytes, filepath FROM games"
             )
             for r in cur2.fetchall():
-                t = r["type"]
-                if t in counts:
-                    counts[t] += 1
-                total_bytes += r["size_bytes"] or 0
+                fp = (r["filepath"] or "").replace("\\", "/")
+                if fp.startswith(path_normalized) or \
+                        fp.startswith(path_normalized_bs):
+                    t = r["type"]
+                    if t in counts:
+                        counts[t] += 1
+                    total_bytes += r["size_bytes"] or 0
 
             total = sum(counts.values())
+
             if total_bytes >= 1_073_741_824:
                 size_str = f"{total_bytes / 1_073_741_824:.1f} Go"
-            else:
+            elif total_bytes >= 1_048_576:
                 size_str = f"{total_bytes / 1_048_576:.0f} Mo"
+            else:
+                size_str = f"{total_bytes / 1024:.0f} Ko"
 
             result.append({
-                "path":       path,
-                "total":      total,
-                "game":       counts["game"],
-                "dlc":        counts["dlc"],
-                "update":     counts["update"],
-                "backport":   counts["backport"],
-                "size_str":   size_str,
-                "date_added": date_added[:10] if date_added else "",
+                "path": path,
+                "total": total,
+                "game": counts["game"],
+                "dlc": counts["dlc"],
+                "update": counts["update"],
+                "backport": counts["backport"],
+                "size_str": size_str,
+                "date_added": date_added,
             })
 
         return result
