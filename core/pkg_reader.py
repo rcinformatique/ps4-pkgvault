@@ -273,32 +273,49 @@ def _format_size(size_bytes: int) -> str:
 
 def read_pkg(filepath: str | Path) -> dict | None:
     """
-    Lit un fichier PKG PS4 et retourne toutes ses métadonnées.
+    Lit un fichier PKG PS4 sans le charger entièrement en mémoire.
     Retourne None si le fichier n'est pas un PKG valide.
     """
     path = Path(filepath)
 
     try:
         file_size = path.stat().st_size
-        data      = path.read_bytes()
+
+        with open(path, "rb") as f:
+
+            # Vérifie le magic (4 bytes)
+            magic = struct.unpack_from(">I", f.read(4))[0]
+            if magic != PKG_MAGIC:
+                return None
+
+            # Content-ID header (offset 0x40)
+            f.seek(0x40)
+            raw_cid           = f.read(36)
+            content_id_header = raw_cid.split(b"\x00")[0].decode(
+                "ascii", errors="ignore"
+            )
+
+            # Lit les premiers 512 Ko — contient toujours le SFO
+            f.seek(0)
+            header_data = f.read(512 * 1024)
+
+        # Cherche le SFO dans les 512 Ko
+        sfo_offset = header_data.find(SFO_MAGIC)
+
+        # Si pas trouvé, essaie dans 2 Mo
+        if sfo_offset == -1:
+            with open(path, "rb") as f:
+                header_data = f.read(2 * 1024 * 1024)
+            sfo_offset = header_data.find(SFO_MAGIC)
+
+        if sfo_offset == -1:
+            return None
+
+        sfo = _parse_sfo(header_data, sfo_offset)
+        if not sfo:
+            return None
+
     except OSError:
-        return None
-
-    # Vérifie le magic
-    magic = struct.unpack_from(">I", data, 0)[0]
-    if magic != PKG_MAGIC:
-        return None
-
-    # Content-ID header
-    content_id_header = _read_content_id_from_header(data)
-
-    # Trouve et parse le SFO
-    sfo_offset = data.find(SFO_MAGIC)
-    if sfo_offset == -1:
-        return None
-
-    sfo = _parse_sfo(data, sfo_offset)
-    if not sfo:
         return None
 
     # Champs SFO
@@ -318,8 +335,6 @@ def read_pkg(filepath: str | Path) -> dict | None:
 
     # Type PKG
     pkg_type = CATEGORY_MAP.get(category, "game")
-
-    # Détection backport depuis SFO uniquement
     if pkg_type in ("game", "update"):
         if _detect_backport_from_sfo(category, system_ver, pubtoolinfo):
             pkg_type = "backport"
@@ -328,13 +343,11 @@ def read_pkg(filepath: str | Path) -> dict | None:
     region = cid_info["region"] or REGION_MAP.get(content_id[:2], "")
 
     return {
-        # Fichier
         "filepath":    str(path),
         "filename":    path.name,
         "size_bytes":  file_size,
         "size_str":    _format_size(file_size),
 
-        # Identifiants
         "title":           title,
         "title_api":       _clean_title_for_api(title),
         "title_id":        final_title_id,
@@ -343,31 +356,26 @@ def read_pkg(filepath: str | Path) -> dict | None:
         "product_code":    cid_info["product_code"],
         "publisher_code":  cid_info["publisher_code"],
 
-        # Type
         "type":            pkg_type,
         "category":        category,
         "category_label":  CATEGORY_LABEL_MAP.get(category, "Inconnu"),
 
-        # Versions
         "app_ver":         app_ver,
         "version":         version,
         "firmware":        _parse_system_ver(system_ver),
         "system_ver_hex":  f"0x{system_ver:08X}" if isinstance(system_ver, int) else "",
         "sdk":             _parse_sdk(pubtoolinfo),
 
-        # Région / Distribution
         "region":          region,
         "store_code":      cid_info["region_code"],
         "platform":        "PS4",
         "distribution":    "Digital" if "digital" in pubtoolinfo.lower() else "Inconnue",
         "pubtoolinfo":     pubtoolinfo,
 
-        # Langues
         "languages":        _parse_languages(lang_mask),
         "lang_mask":        f"0x{lang_mask:08X}" if isinstance(lang_mask, int) else "",
         "localized_titles": _get_localized_titles(sfo),
 
-        # API (vide au départ)
         "title_api_result": "",
         "description":      "",
         "developer":        "",

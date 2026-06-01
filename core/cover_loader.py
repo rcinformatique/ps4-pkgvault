@@ -54,14 +54,35 @@ def save_screenshot(
 def extract_icon0(pkg_path: str | Path) -> bytes | None:
     """
     Extrait icon0.png depuis le fichier PKG.
-    Utilise la détection par signature PNG.
+    Lit uniquement les premiers Mo pour trouver le PNG.
     """
     try:
-        from core.pkg_reader import extract_icon0_png
-        data = Path(pkg_path).read_bytes()
-        return extract_icon0_png(data)
+        path = Path(pkg_path)
+        with open(path, "rb") as f:
+            # Lit par chunks jusqu'à trouver le PNG
+            chunk_size = 1024 * 1024  # 1 Mo
+            buffer     = b""
+            for _ in range(20):  # max 20 Mo
+                chunk = f.read(chunk_size)
+                if not chunk:
+                    break
+                buffer += chunk
+                idx = buffer.find(b"\x89PNG\r\n\x1a\n")
+                if idx != -1:
+                    # Trouve la fin du PNG
+                    end = buffer.find(b"IEND", idx)
+                    if end != -1:
+                        return buffer[idx:end + 8]
+                    # Lit encore pour avoir la fin
+                    extra = f.read(chunk_size)
+                    buffer += extra
+                    end = buffer.find(b"IEND", idx)
+                    if end != -1:
+                        return buffer[idx:end + 8]
+                    break
     except OSError:
-        return None
+        pass
+    return None
 
 
 # ------------------------------------------------------------------ #
