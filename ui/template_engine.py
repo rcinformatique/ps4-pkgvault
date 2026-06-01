@@ -66,7 +66,7 @@ def _base_context(
         "stats": {
             "game":       s.get("game",       0),
             "dlc":        s.get("dlc",        0),
-            "update":     s.get("update",     0),
+            "updates":    s.get("update",     0),
             "backport":   s.get("backport",   0),
             "total_size": s.get("total_size", "0 Go"),
             "total_go":   s.get("total_go",   "0"),
