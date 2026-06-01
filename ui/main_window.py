@@ -43,6 +43,29 @@ class ScanThread(QThread):
             all_errors.extend(errors)
         self.scan_done.emit(all_packages, all_errors)
 
+class ScanFilesThread(QThread):
+    """Scanne une liste de fichiers spécifiques."""
+    scan_done = pyqtSignal(list, list)
+
+    def __init__(self, filepaths: list[str], db: Database, parent=None):
+        super().__init__(parent)
+        self._filepaths = filepaths
+        self._db        = db
+
+    def run(self):
+        from core.pkg_reader import read_pkg
+        packages = []
+        errors   = []
+
+        for filepath in self._filepaths:
+            result = read_pkg(filepath)
+            if result:
+                self._db.upsert_game(result)
+                packages.append(result)
+            else:
+                errors.append(filepath)
+
+        self.scan_done.emit(packages, errors)
 
 # ------------------------------------------------------------------ #
 #  PyBridge                                                            #
@@ -190,19 +213,85 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _restore_session(self):
-        self._active_filter = self._db.get_setting("active_filter", "game")
-        self._view_mode     = self._db.get_setting("view_mode", "grid")
+        """Charge les données au démarrage et ne rescanne que les nouveaux fichiers."""
 
+        self._active_filter = self._db.get_setting("active_filter", "game")
+        self._view_mode = self._db.get_setting("view_mode", "grid")
+
+        # Charge depuis la BDD
         cached = self._db.get_all_games()
         if cached:
-            self._packages   = cached
-            self._status_msg = f"{len(cached)} PKG chargés depuis la base de données"
+            self._packages = cached
+            self._status_msg = f"{len(cached)} PKG chargés"
 
         self._show_library()
 
+        # Vérifie les nouveaux fichiers uniquement
         folders = self._db.get_folders()
         if folders:
-            self._start_scan(folders)
+            self._start_smart_scan(folders)
+
+    def _start_smart_scan(self, folders: list[str]):
+        """
+        Scanne uniquement les fichiers non encore dans la BDD
+        ou dont le fichier n'existe plus sur disque.
+        """
+        from pathlib import Path
+
+        # Fichiers connus dans la BDD
+        known_paths = set(
+            p.get("filepath", "") for p in self._packages
+        )
+
+        # Fichiers sur disque
+        disk_files = []
+        for folder in folders:
+            folder_path = Path(folder)
+            if folder_path.exists():
+                disk_files.extend(
+                    str(f) for f in folder_path.rglob("*.pkg")
+                )
+
+        # Nouveaux fichiers non encore dans la BDD
+        new_files = [f for f in disk_files if f not in known_paths]
+
+        # Fichiers dans la BDD qui n'existent plus sur disque
+        missing = [p for p in known_paths if p and not Path(p).exists()]
+
+        print(f"Smart scan : {len(new_files)} nouveaux, {len(missing)} manquants")
+
+        # Supprime les fichiers manquants de la BDD
+        for filepath in missing:
+            self._db.delete_by_filepath(filepath)
+            self._packages = [
+                p for p in self._packages
+                if p.get("filepath") != filepath
+            ]
+
+        if missing:
+            self._packages = self._db.get_all_games()
+            self._show_library()
+
+        # Scanne uniquement les nouveaux
+        if new_files:
+            self._status_msg = f"Nouveaux fichiers détectés : {len(new_files)}"
+            self._show_library()
+            self._start_scan_files(new_files)
+        else:
+            self._status_msg = f"{len(self._packages)} PKG chargés"
+            self._show_library()
+            # Lance juste les covers manquantes
+            self._start_cover_loader(self._packages)
+
+    def _start_scan_files(self, filepaths: list[str]):
+        """Scanne une liste de fichiers spécifiques."""
+        if self._scan_thread and self._scan_thread.isRunning():
+            self._scan_thread.quit()
+            self._scan_thread.wait()
+
+        self._scan_thread = ScanFilesThread(filepaths, self._db)
+        self._scan_thread.scan_done.connect(self._on_scan_done)
+        self._scan_thread.start()
 
     # ------------------------------------------------------------------ #
     #  Navigation                                                          #
