@@ -55,6 +55,7 @@ def _base_context(
     active_filter: str = "all",
     active_sort: str = "title",
     count_str: str = "0 fichiers",
+    view_mode: str = "grid",
 ) -> dict:
     s = stats or DEFAULT_STATS
     return {
@@ -63,6 +64,7 @@ def _base_context(
         "active_sort":   active_sort,
         "count_str":     count_str,
         "status_msg":    status_msg,
+        "view_mode":     view_mode,
         "stats": {
             "game":       s.get("game",       0),
             "dlc":        s.get("dlc",        0),
@@ -108,7 +110,8 @@ class TemplateEngine:
             count_str = f"{total} fichier{'s' if total > 1 else ''} · {size}"
         ctx = _base_context(
             "library", stats, status_msg,
-            active_filter, active_sort, count_str
+            active_filter, active_sort, count_str,
+            view_mode
         )
         ctx.update({
             "packages":       [_normalize_pkg(p) for p in packages],
