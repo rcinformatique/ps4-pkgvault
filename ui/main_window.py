@@ -18,7 +18,7 @@ from core.api_client import ApiWorkerThread
 
 
 # ------------------------------------------------------------------ #
-#  Thread de scan                                                      #
+#  Thread de scan complet                                              #
 # ------------------------------------------------------------------ #
 
 class ScanThread(QThread):
@@ -43,8 +43,12 @@ class ScanThread(QThread):
             all_errors.extend(errors)
         self.scan_done.emit(all_packages, all_errors)
 
+
+# ------------------------------------------------------------------ #
+#  Thread de scan fichiers spécifiques                                 #
+# ------------------------------------------------------------------ #
+
 class ScanFilesThread(QThread):
-    """Scanne une liste de fichiers spécifiques."""
     scan_done = pyqtSignal(list, list)
 
     def __init__(self, filepaths: list[str], db: Database, parent=None):
@@ -56,7 +60,6 @@ class ScanFilesThread(QThread):
         from core.pkg_reader import read_pkg
         packages = []
         errors   = []
-
         for filepath in self._filepaths:
             result = read_pkg(filepath)
             if result:
@@ -64,8 +67,8 @@ class ScanFilesThread(QThread):
                 packages.append(result)
             else:
                 errors.append(filepath)
-
         self.scan_done.emit(packages, errors)
+
 
 # ------------------------------------------------------------------ #
 #  PyBridge                                                            #
@@ -161,6 +164,14 @@ class PyBridge(QObject):
     def open_related(self, content_id: str):
         self._win.on_open_related(content_id)
 
+    @pyqtSlot()
+    def fetch_api(self):
+        self._win.on_fetch_api()
+
+    @pyqtSlot(str)
+    def refetch_api(self, content_id: str):
+        self._win.on_refetch_api(content_id)
+
 
 # ------------------------------------------------------------------ #
 #  MainWindow                                                          #
@@ -214,53 +225,36 @@ class MainWindow(QMainWindow):
 
     def _restore_session(self):
         """Charge les données au démarrage et ne rescanne que les nouveaux fichiers."""
-
         self._active_filter = self._db.get_setting("active_filter", "game")
-        self._view_mode = self._db.get_setting("view_mode", "grid")
+        self._view_mode     = self._db.get_setting("view_mode", "grid")
 
-        # Charge depuis la BDD
         cached = self._db.get_all_games()
         if cached:
-            self._packages = cached
+            self._packages   = cached
             self._status_msg = f"{len(cached)} PKG chargés"
 
         self._show_library()
 
-        # Vérifie les nouveaux fichiers uniquement
         folders = self._db.get_folders()
         if folders:
             self._start_smart_scan(folders)
 
     def _start_smart_scan(self, folders: list[str]):
-        """
-        Scanne uniquement les fichiers non encore dans la BDD
-        ou dont le fichier n'existe plus sur disque.
-        """
-        from pathlib import Path
+        """Scanne uniquement les nouveaux fichiers."""
+        known_paths = set(p.get("filepath", "") for p in self._packages)
 
-        # Fichiers connus dans la BDD
-        known_paths = set(
-            p.get("filepath", "") for p in self._packages
-        )
-
-        # Fichiers sur disque
         disk_files = []
         for folder in folders:
             folder_path = Path(folder)
             if folder_path.exists():
-                disk_files.extend(
-                    str(f) for f in folder_path.rglob("*.pkg")
-                )
+                disk_files.extend(str(f) for f in folder_path.rglob("*.pkg"))
 
-        # Nouveaux fichiers non encore dans la BDD
         new_files = [f for f in disk_files if f not in known_paths]
-
-        # Fichiers dans la BDD qui n'existent plus sur disque
-        missing = [p for p in known_paths if p and not Path(p).exists()]
+        missing   = [p for p in known_paths if p and not Path(p).exists()]
 
         print(f"Smart scan : {len(new_files)} nouveaux, {len(missing)} manquants")
 
-        # Supprime les fichiers manquants de la BDD
+        # Supprime les fichiers manquants
         for filepath in missing:
             self._db.delete_by_filepath(filepath)
             self._packages = [
@@ -272,15 +266,13 @@ class MainWindow(QMainWindow):
             self._packages = self._db.get_all_games()
             self._show_library()
 
-        # Scanne uniquement les nouveaux
         if new_files:
-            self._status_msg = f"Nouveaux fichiers détectés : {len(new_files)}"
+            self._status_msg = f"Nouveaux fichiers : {len(new_files)}"
             self._show_library()
             self._start_scan_files(new_files)
         else:
             self._status_msg = f"{len(self._packages)} PKG chargés"
             self._show_library()
-            # Lance juste les covers manquantes
             self._start_cover_loader(self._packages)
 
     def _start_scan_files(self, filepaths: list[str]):
@@ -517,6 +509,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _start_api_worker(self):
+        """Lance la récupération API automatique."""
         rawg_key       = self._db.get_setting("rawg_api_key", "")
         igdb_client_id = self._db.get_setting("igdb_client_id", "")
         igdb_secret    = self._db.get_setting("igdb_client_secret", "")
@@ -529,18 +522,30 @@ class MainWindow(QMainWindow):
         if not unfetched:
             return
 
+        self._start_api_worker_manual(unfetched)
+
+    def _start_api_worker_manual(self, games: list[dict]):
+        """Lance le worker API avec une liste spécifique."""
+        rawg_key       = self._db.get_setting("rawg_api_key", "")
+        igdb_client_id = self._db.get_setting("igdb_client_id", "")
+        igdb_secret    = self._db.get_setting("igdb_client_secret", "")
+
+        if not rawg_key:
+            return
+
         if self._api_thread and self._api_thread.isRunning():
             self._api_thread.stop()
             self._api_thread.wait()
 
         self._api_thread = ApiWorkerThread(
-            games              = unfetched,
+            games              = games,
             rawg_api_key       = rawg_key,
             igdb_client_id     = igdb_client_id,
             igdb_client_secret = igdb_secret,
         )
         self._api_thread.game_updated.connect(self._on_game_updated)
         self._api_thread.cover_ready.connect(self._on_cover_ready)
+        self._api_thread.progress.connect(self._on_api_progress)
         self._api_thread.status_message.connect(self._on_api_status)
         self._api_thread.finished_all.connect(self._on_api_finished)
         self._api_thread.start()
@@ -562,11 +567,30 @@ class MainWindow(QMainWindow):
                 })
                 break
 
+    def _on_api_progress(self, current: int, total: int):
+        """Met à jour la progression dans la statusbar via JS."""
+        self._web.page().runJavaScript(f"""
+            var el  = document.getElementById('sb-progress');
+            var txt = document.getElementById('sb-progress-text');
+            if (el)  el.style.display = 'inline';
+            if (txt) txt.textContent  = 'API {current}/{total}';
+        """)
+
     def _on_api_status(self, msg: str):
-        self._status_msg = msg
+        """Met à jour le message de statut via JS."""
+        safe_msg = msg[:50].replace("'", "\\'").replace("\n", " ")
+        self._web.page().runJavaScript(f"""
+            var txt = document.getElementById('sb-progress-text');
+            if (txt) txt.textContent = '{safe_msg}';
+        """)
 
     def _on_api_finished(self):
-        self._status_msg = "Données API récupérées"
+        """Cache la progression et rafraîchit."""
+        self._web.page().runJavaScript("""
+            var el = document.getElementById('sb-progress');
+            if (el) el.style.display = 'none';
+        """)
+        self._status_msg = "✅ Données API récupérées"
         self._packages   = self._db.get_all_games()
         self._show_library()
 
@@ -602,6 +626,55 @@ class MainWindow(QMainWindow):
         self._view_mode = "list" if self._view_mode == "grid" else "grid"
         self._db.set_setting("view_mode", self._view_mode)
         self._show_library()
+
+    def on_fetch_api(self):
+        """Lance la récupération API manuellement."""
+        rawg_key = self._db.get_setting("rawg_api_key", "")
+        if not rawg_key:
+            QMessageBox.warning(
+                self,
+                "Clé API manquante",
+                "Configurez votre clé RAWG.io dans Paramètres."
+            )
+            return
+
+        unfetched = self._db.get_unfetched()
+        if not unfetched:
+            QMessageBox.information(
+                self,
+                "Données API",
+                "✅ Toutes les données API sont déjà récupérées !"
+            )
+            return
+
+        self._status_msg = f"Récupération API — {len(unfetched)} jeux…"
+        self._show_library()
+        self._start_api_worker_manual(unfetched)
+
+    def on_refetch_api(self, content_id: str):
+        """Force la re-récupération API pour un jeu spécifique."""
+        rawg_key = self._db.get_setting("rawg_api_key", "")
+        if not rawg_key:
+            QMessageBox.warning(
+                self,
+                "Clé API manquante",
+                "Configurez votre clé RAWG.io dans Paramètres."
+            )
+            return
+
+        # Remet api_fetched à 0
+        self._db._conn.execute(
+            "UPDATE games SET api_fetched = 0 WHERE content_id = ?",
+            (content_id,)
+        )
+        self._db._conn.commit()
+
+        # Met à jour en mémoire et relance
+        for pkg in self._packages:
+            if pkg.get("content_id") == content_id:
+                pkg["api_fetched"] = 0
+                self._start_api_worker_manual([pkg])
+                break
 
     def on_add_folder(self):
         folder = QFileDialog.getExistingDirectory(
@@ -719,7 +792,10 @@ class MainWindow(QMainWindow):
             if resp.status_code == 200:
                 QMessageBox.information(self, "RAWG.io", "✅ Clé API valide !")
             else:
-                QMessageBox.warning(self, "RAWG.io", f"❌ Clé invalide (code {resp.status_code})")
+                QMessageBox.warning(
+                    self, "RAWG.io",
+                    f"❌ Clé invalide (code {resp.status_code})"
+                )
         except Exception as e:
             QMessageBox.critical(self, "Erreur", str(e))
 
@@ -743,7 +819,8 @@ class MainWindow(QMainWindow):
     def on_reset_db(self):
         reply = QMessageBox.warning(
             self, "Réinitialiser la base de données",
-            "Supprimer tous les jeux indexés ?\n\nLes fichiers PKG ne seront pas affectés.",
+            "Supprimer tous les jeux indexés ?\n\n"
+            "Les fichiers PKG ne seront pas affectés.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
