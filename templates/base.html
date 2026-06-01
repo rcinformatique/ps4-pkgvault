@@ -44,71 +44,92 @@ html, body {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-s); }
 
-/* ===== LAYOUT ===== */
-.app {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
+.app { display: flex; flex-direction: column; height: 100vh; }
 
-/* ===== TOPBAR ===== */
+/* TOPBAR */
 .topbar {
   background: var(--white);
   height: 52px;
   display: flex;
   align-items: center;
-  padding: 0 20px;
-  gap: 12px;
+  padding: 0 16px;
+  gap: 8px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   z-index: 100;
+  overflow: hidden;
 }
 
 .logo {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--tp);
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  flex-shrink: 0;
 }
 .logo .accent { color: var(--accent); }
-.logo .icon { font-size: 20px; }
 
-.nav-tabs { display: flex; gap: 2px; }
+#back-btn {
+  display: none;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--ts);
+  font-size: 12px;
+  padding: 5px 11px;
+  cursor: pointer;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+#back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.nav-tabs {
+  display: flex;
+  gap: 1px;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+}
 
 .nav-tab {
-  padding: 6px 12px;
+  padding: 5px 10px;
   font-size: 12px;
   color: var(--tm);
   border-radius: var(--r-md);
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   border: none;
   background: transparent;
   font-family: 'Segoe UI', Arial, sans-serif;
   transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 1;
 }
 .nav-tab:hover { background: var(--input); color: var(--ts); }
-.nav-tab.active {
-  background: var(--accent-l);
-  color: var(--accent);
-  font-weight: 500;
-}
+.nav-tab.active { background: var(--accent-l); color: var(--accent); font-weight: 500; }
 
 .search-wrap {
-  margin-left: auto;
   background: var(--input);
   border: 1px solid var(--border-s);
   border-radius: 20px;
-  padding: 5px 13px;
+  padding: 5px 12px;
   display: flex;
   align-items: center;
-  gap: 7px;
-  width: 200px;
+  gap: 6px;
+  min-width: 120px;
+  max-width: 200px;
+  flex: 1;
+  margin-left: auto;
+  flex-shrink: 1;
 }
 .search-wrap input {
   border: none;
@@ -118,6 +139,7 @@ html, body {
   color: var(--tp);
   width: 100%;
   font-family: 'Segoe UI', Arial, sans-serif;
+  min-width: 0;
 }
 .search-wrap input::placeholder { color: var(--th); }
 
@@ -127,35 +149,20 @@ html, body {
   border-radius: var(--r-md);
   color: #fff;
   font-size: 12px;
-  padding: 7px 14px;
+  padding: 7px 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   white-space: nowrap;
   font-family: 'Segoe UI', Arial, sans-serif;
   font-weight: 500;
   transition: background 0.15s;
+  flex-shrink: 0;
 }
 .btn-add:hover { background: var(--accent-h); }
 
-.btn-icon {
-  background: var(--input);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  color: var(--ts);
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 16px;
-  transition: all 0.15s;
-}
-.btn-icon:hover { background: var(--accent-l); color: var(--accent); border-color: var(--accent-b); }
-
-/* ===== SUBBAR ===== */
+/* SUBBAR */
 .subbar {
   background: var(--white);
   height: 40px;
@@ -179,19 +186,9 @@ html, body {
   transition: all 0.15s;
 }
 .filter-pill:hover { border-color: var(--accent); color: var(--accent); }
-.filter-pill.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-  font-weight: 600;
-}
+.filter-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
 
-.sort-wrap {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.sort-wrap { margin-left: auto; display: flex; align-items: center; gap: 6px; }
 .sort-label { font-size: 11px; color: var(--th); }
 .sort-btn {
   font-size: 11px;
@@ -202,21 +199,16 @@ html, body {
   font-family: 'Segoe UI', Arial, sans-serif;
   padding: 2px 6px;
   border-radius: var(--r-sm);
+  transition: all 0.15s;
 }
 .sort-btn:hover { color: var(--accent); background: var(--accent-l); }
 .sort-btn.active { color: var(--accent); font-weight: 600; }
-
 .count-lbl { font-size: 11px; color: var(--th); margin-left: 8px; }
 
-/* ===== PAGE CONTENT ===== */
-.page-content {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+/* PAGE CONTENT */
+.page-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 
-/* ===== STATUSBAR ===== */
+/* STATUSBAR */
 .statusbar {
   background: var(--white);
   height: 26px;
@@ -227,36 +219,19 @@ html, body {
   border-top: 1px solid var(--border-l);
   flex-shrink: 0;
 }
-.sb-item {
-  font-size: 10px;
-  color: var(--th);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.sb-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
+.sb-item { font-size: 10px; color: var(--th); display: flex; align-items: center; gap: 4px; }
+.sb-dot { width: 6px; height: 6px; border-radius: 50%; }
 .sb-sep { color: var(--border); font-size: 12px; }
-.sb-msg {
-  font-size: 10px;
-  color: var(--accent);
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
+.sb-msg { font-size: 10px; color: var(--accent); margin-left: auto; }
 
-/* ===== BUTTONS ===== */
+/* BUTTONS */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   padding: 7px 15px;
   border-radius: var(--r-md);
-  font-size: 13px;
+  font-size: 12px;
   font-family: 'Segoe UI', Arial, sans-serif;
   cursor: pointer;
   border: none;
@@ -265,55 +240,12 @@ html, body {
 }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover { background: var(--accent-h); }
-.btn-secondary {
-  background: var(--input);
-  color: var(--ts);
-  border: 1px solid var(--border);
-}
+.btn-secondary { background: var(--input); color: var(--ts); border: 1px solid var(--border); }
 .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-.btn-danger {
-  background: #fff5f5;
-  color: var(--error);
-  border: 1px solid #ffd0d0;
-}
+.btn-danger { background: #fff5f5; color: var(--error); border: 1px solid #ffd0d0; }
 .btn-danger:hover { background: #ffe0e0; }
 
-/* ===== SECTION CARD ===== */
-.section-card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  overflow: hidden;
-}
-.section-header {
-  padding: 14px 18px 0;
-}
-.section-title {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--th);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-}
-.section-body { padding: 0 18px 18px; }
-
-/* ===== PAGE TITLES ===== */
-.page-header {
-  padding: 24px 24px 0;
-}
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--tp);
-  margin-bottom: 4px;
-}
-.page-subtitle {
-  font-size: 13px;
-  color: var(--tm);
-}
-
-/* ===== EMPTY STATE ===== */
+/* EMPTY STATE */
 .empty-state {
   flex: 1;
   display: flex;
@@ -324,16 +256,30 @@ html, body {
   padding: 40px;
 }
 .empty-icon { font-size: 64px; }
-.empty-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--tm);
+.empty-title { font-size: 18px; font-weight: 600; color: var(--tm); }
+.empty-sub { font-size: 14px; color: var(--th); text-align: center; line-height: 1.6; }
+
+/* PAGE TITLES */
+.page-title { font-size: 20px; font-weight: 700; color: var(--tp); margin-bottom: 4px; }
+.page-subtitle { font-size: 13px; color: var(--tm); }
+
+/* SECTION CARD */
+.sc {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  overflow: hidden;
 }
-.empty-sub {
-  font-size: 14px;
+.sc-head {
+  padding: 14px 18px 0;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--th);
-  text-align: center;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
 }
+.sc-body { padding: 0 18px 18px; }
 
 {% block extra_styles %}{% endblock %}
 </style>
@@ -343,150 +289,113 @@ html, body {
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <div class="logo">
-      <span class="icon">📦</span>
-      PS4 PKG<span class="accent">Vault</span>
-    </div>
-    <button id="back-btn"
-  onclick="pybridge.go_back()"
-  style="
-    display: none;
-    background: #f5f7fa;
-    border: 1px solid #e4e7ec;
-    border-radius: 8px;
-    color: #666;
-    font-size: 13px;
-    padding: 5px 13px;
-    cursor: pointer;
-    align-items: center;
-    gap: 6px;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    transition: all 0.15s;
-    white-space: nowrap;
-  "
-  onmouseover="this.style.borderColor='#0067c0'; this.style.color='#0067c0';"
-  onmouseout="this.style.borderColor='#e4e7ec'; this.style.color='#666';">
-  ← Retour
-</button>
+    <div class="logo">📦 PS4 PKG<span class="accent">Vault</span></div>
 
-<nav class="nav-tabs">
+    <button id="back-btn" onclick="_callBridge(function(b){ b.go_back(); })">
+      ← Retour
+    </button>
+
+    <nav class="nav-tabs">
       <button class="nav-tab {% if active_page == 'library' %}active{% endif %}"
-        onclick="navigate('library')">
+        onclick="_callBridge(function(b){ b.navigate('library'); })">
         🗂️ Bibliothèque
       </button>
       <button class="nav-tab {% if active_page == 'folders' %}active{% endif %}"
-        onclick="navigate('folders')">
+        onclick="_callBridge(function(b){ b.navigate('folders'); })">
         📁 Dossiers
       </button>
       <button class="nav-tab {% if active_page == 'settings' %}active{% endif %}"
-        onclick="navigate('settings')">
+        onclick="_callBridge(function(b){ b.navigate('settings'); })">
         ⚙️ Paramètres
       </button>
       <button class="nav-tab {% if active_page == 'credits' %}active{% endif %}"
-        onclick="navigate('credits')">
+        onclick="_callBridge(function(b){ b.navigate('credits'); })">
         ℹ️ À propos
       </button>
     </nav>
+
     <div class="search-wrap">
       <span style="color:var(--th); font-size:14px;">🔍</span>
       <input type="text" id="search-input"
         placeholder="Rechercher un titre, CUSA…"
-        oninput="onSearch(this.value)" />
+        oninput="_callBridge(function(b){ b.search(document.getElementById('search-input').value); })" />
     </div>
-    <button class="btn-add" onclick="pybridge.add_folder()">
+
+    <button class="btn-add"
+      onclick="_callBridge(function(b){ b.add_folder(); })">
       ➕ Ajouter un dossier
     </button>
-    <div class="btn-icon" onclick="pybridge.toggle_view()" title="Vue liste / grille">☰</div>
   </div>
 
-  <!-- SUBBAR (library only) -->
+  <!-- SUBBAR -->
   {% if active_page == 'library' %}
-  <div class="subbar" id="subbar">
+  <div class="subbar">
     <button class="filter-pill {% if active_filter == 'all' %}active{% endif %}"
-      onclick="setFilter('all')">Tous</button>
+      onclick="_callBridge(function(b){ b.set_filter('all'); })">Tous</button>
     <button class="filter-pill {% if active_filter == 'game' %}active{% endif %}"
-      onclick="setFilter('game')">BASE</button>
+      onclick="_callBridge(function(b){ b.set_filter('game'); })">BASE</button>
     <button class="filter-pill {% if active_filter == 'dlc' %}active{% endif %}"
-      onclick="setFilter('dlc')">DLC</button>
+      onclick="_callBridge(function(b){ b.set_filter('dlc'); })">DLC</button>
     <button class="filter-pill {% if active_filter == 'update' %}active{% endif %}"
-      onclick="setFilter('update')">UPDATE</button>
+      onclick="_callBridge(function(b){ b.set_filter('update'); })">UPDATE</button>
     <button class="filter-pill {% if active_filter == 'backport' %}active{% endif %}"
-      onclick="setFilter('backport')">BACKPORT</button>
+      onclick="_callBridge(function(b){ b.set_filter('backport'); })">BACKPORT</button>
     <div class="sort-wrap">
       <span class="sort-label">Trier :</span>
       <button class="sort-btn {% if active_sort == 'title' %}active{% endif %}"
-        onclick="setSort('title')">Nom</button>
+        onclick="_callBridge(function(b){ b.set_sort('title'); })">Nom</button>
       <button class="sort-btn {% if active_sort == 'size' %}active{% endif %}"
-        onclick="setSort('size')">Taille</button>
+        onclick="_callBridge(function(b){ b.set_sort('size'); })">Taille</button>
       <button class="sort-btn {% if active_sort == 'type' %}active{% endif %}"
-        onclick="setSort('type')">Type</button>
-      <button class="sort-btn {% if active_sort == 'date' %}active{% endif %}"
-        onclick="setSort('date')">Date</button>
+        onclick="_callBridge(function(b){ b.set_sort('type'); })">Type</button>
     </div>
-    <span class="count-lbl" id="count-lbl">{{ count_str }}</span>
+    <span class="count-lbl">{{ count_str }}</span>
   </div>
   {% endif %}
 
   <!-- PAGE CONTENT -->
-  <div class="page-content" id="page-content">
+  <div class="page-content">
     {% block content %}{% endblock %}
   </div>
 
   <!-- STATUSBAR -->
   <div class="statusbar">
-    <div class="sb-item">
-      <span class="sb-dot" style="background:#0067c0;"></span>
-      Jeux {{ stats.game }}
-    </div>
+    <div class="sb-item"><span class="sb-dot" style="background:#0067c0;"></span>Jeux {{ stats.game }}</div>
     <span class="sb-sep">|</span>
-    <div class="sb-item">
-      <span class="sb-dot" style="background:#107c10;"></span>
-      DLC {{ stats.dlc }}
-    </div>
+    <div class="sb-item"><span class="sb-dot" style="background:#107c10;"></span>DLC {{ stats.dlc }}</div>
     <span class="sb-sep">|</span>
-    <div class="sb-item">
-      <span class="sb-dot" style="background:#0078d4;"></span>
-      Updates {{ stats.update }}
-    </div>
+    <div class="sb-item"><span class="sb-dot" style="background:#0078d4;"></span>Updates {{ stats.update }}</div>
     <span class="sb-sep">|</span>
-    <div class="sb-item">
-      <span class="sb-dot" style="background:#ca5010;"></span>
-      Backports {{ stats.backport }}
-    </div>
+    <div class="sb-item"><span class="sb-dot" style="background:#ca5010;"></span>Backports {{ stats.backport }}</div>
     <span class="sb-sep">|</span>
     <div class="sb-item">{{ stats.total_size }}</div>
-    <div class="sb-msg" id="sb-msg">✅ {{ status_msg }}</div>
+    <div class="sb-msg">{{ status_msg }}</div>
   </div>
 
 </div>
 
 <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 <script>
-var pybridge = null;
+var pybridge      = null;
+var _pendingCalls = [];
+
+function _callBridge(fn) {
+  if (pybridge) {
+    fn(pybridge);
+  } else {
+    _pendingCalls.push(fn);
+  }
+}
 
 new QWebChannel(qt.webChannelTransport, function(channel) {
   pybridge = channel.objects.pybridge;
+  _pendingCalls.forEach(function(fn) { fn(pybridge); });
+  _pendingCalls = [];
 });
-
-function navigate(page) {
-  if (pybridge) pybridge.navigate(page);
-}
 
 function showBackBtn(show) {
   var btn = document.getElementById('back-btn');
   if (btn) btn.style.display = show ? 'inline-flex' : 'none';
-}
-
-function onSearch(text) {
-  if (pybridge) pybridge.search(text);
-}
-
-function setFilter(key) {
-  if (pybridge) pybridge.set_filter(key);
-}
-
-function setSort(key) {
-  if (pybridge) pybridge.set_sort(key);
 }
 
 {% block extra_scripts %}{% endblock %}

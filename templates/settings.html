@@ -77,6 +77,56 @@
 }
 .settings-select:hover { border-color: var(--accent); }
 
+.settings-row {
+  padding: 13px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-l);
+  flex-wrap: wrap;
+}
+.settings-row:last-child { border-bottom: none; }
+
+.settings-row-text { flex: 1; min-width: 200px; }
+
+.input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.settings-input {
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 6px 11px;
+  font-size: 12px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: var(--tp);
+  outline: none;
+  width: 200px;
+  min-width: 120px;
+  height: 32px;
+  transition: border-color 0.15s;
+}
+.settings-input:focus { border-color: var(--accent); }
+
+.settings-select {
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: var(--tp);
+  outline: none;
+  min-width: 160px;
+  height: 32px;
+  cursor: pointer;
+}
+.settings-select:hover { border-color: var(--accent); }
+
 .toggle-wrap {
   display: flex;
   align-items: center;
@@ -244,7 +294,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-var _autoFetch = {{ 'true' if settings.auto_fetch else 'false' }};
+var _autoFetch = {{ 'true' if settings.auto_fetch == '1' else 'false' }};
 
 function toggleAuto() {
   _autoFetch = !_autoFetch;
@@ -254,17 +304,19 @@ function toggleAuto() {
 
 function testRawg() {
   var key = document.getElementById('rawg-key').value.trim();
-  if (pybridge) pybridge.test_rawg(key);
+  _callBridge(function(b) { b.test_rawg(key); });
 }
 
 function saveSettings() {
   var data = {
-    rawg_api_key:   document.getElementById('rawg-key').value.trim(),
-    igdb_client_id: document.getElementById('igdb-key').value.trim(),
-    auto_fetch:     _autoFetch,
-    card_min_width: parseInt(document.getElementById('card-size').value),
-    language:       document.getElementById('lang').value,
+    rawg_api_key:        document.getElementById('rawg-key').value.trim(),
+    igdb_client_id:      document.getElementById('igdb-key').value.trim(),
+    auto_fetch:          _autoFetch ? '1' : '0',
+    card_min_width:      document.getElementById('card-size').value,
+    language:            document.getElementById('lang').value,
   };
-  if (pybridge) pybridge.save_settings(JSON.stringify(data));
+  _callBridge(function(b) {
+    b.save_settings(JSON.stringify(data));
+  });
 }
 {% endblock %}
