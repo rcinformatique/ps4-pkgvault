@@ -1,6 +1,7 @@
+import json as _json
 from pathlib import Path
-from datetime import datetime
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader
+from markupsafe import Markup
 
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
@@ -18,25 +19,23 @@ DEFAULT_STATS = {
 }
 
 DEFAULT_SETTINGS = {
-    "rawg_api_key":   "",
-    "igdb_client_id": "",
-    "auto_fetch":     True,
-    "card_min_width": 180,
-    "language":       "fr",
-    "cache_info":     "cache/covers/ · 0 fichiers",
+    "rawg_api_key":       "",
+    "igdb_client_id":     "",
+    "igdb_client_secret": "",
+    "auto_fetch":         "1",
+    "card_min_width":     "180",
+    "language":           "fr",
+    "cache_info":         "cache/covers/ · 0 fichiers",
 }
 
 
 def _normalize_pkg(pkg: dict) -> dict:
-    """Ajoute les infos de type à un dict PKG."""
     pkg_type = pkg.get("type", "game")
     info     = TYPE_INFO.get(pkg_type, TYPE_INFO["game"])
-    cover    = pkg.get("cover_path", "")
-    if cover:
-        cover = cover.replace("\\", "/")
+    cover    = (pkg.get("cover_path") or "").replace("\\", "/")
     screenshots = [
         s.replace("\\", "/")
-        for s in pkg.get("screenshots", [])
+        for s in (pkg.get("screenshots") or [])
     ]
     return {
         **pkg,
@@ -57,7 +56,6 @@ def _base_context(
     active_sort: str = "title",
     count_str: str = "0 fichiers",
 ) -> dict:
-    """Contexte commun à toutes les pages."""
     s = stats or DEFAULT_STATS
     return {
         "active_page":   active_page,
@@ -66,53 +64,53 @@ def _base_context(
         "count_str":     count_str,
         "status_msg":    status_msg,
         "stats": {
-            "game":       s.get("game", 0),
-            "dlc":        s.get("dlc", 0),
-            "update":     s.get("update", 0),
-            "backport":   s.get("backport", 0),
+            "game":       s.get("game",       0),
+            "dlc":        s.get("dlc",        0),
+            "update":     s.get("update",     0),
+            "backport":   s.get("backport",   0),
             "total_size": s.get("total_size", "0 Go"),
-            "total_go":   s.get("total_go", "0"),
+            "total_go":   s.get("total_go",   "0"),
         },
     }
 
 
 class TemplateEngine:
-    """Moteur Jinja2 pour toutes les pages de PS4 PKGVault."""
 
     def __init__(self):
         self._env = Environment(
             loader=FileSystemLoader(str(TEMPLATES_DIR)),
-            autoescape=select_autoescape(["html"]),
+            autoescape=False,
+        )
+        self._env.filters["tojson"] = lambda v: Markup(
+            _json.dumps(v, ensure_ascii=False)
         )
 
     def _render(self, template_name: str, context: dict) -> str:
-        tpl = self._env.get_template(template_name)
-        return tpl.render(**context)
+        return self._env.get_template(template_name).render(**context)
 
     def render_library(
-            self,
-            packages: list[dict],
-            stats: dict = None,
-            active_filter: str = "all",
-            active_sort: str = "title",
-            last_scan: str = "",
-            active_folder: str = "",
-            status_msg: str = "Prêt",
-            count_str: str = "0 fichiers",
+        self,
+        packages: list[dict],
+        stats: dict = None,
+        active_filter: str = "all",
+        active_sort: str = "title",
+        last_scan: str = "",
+        active_folder: str = "",
+        status_msg: str = "Prêt",
+        count_str: str = "",
     ) -> str:
         s = stats or DEFAULT_STATS
         if not count_str:
-            total = len(packages)
-            size = s.get("total_size", "0 Go")
+            total     = len(packages)
+            size      = s.get("total_size", "0 Go")
             count_str = f"{total} fichier{'s' if total > 1 else ''} · {size}"
-
         ctx = _base_context(
             "library", stats, status_msg,
             active_filter, active_sort, count_str
         )
         ctx.update({
-            "packages": [_normalize_pkg(p) for p in packages],
-            "last_scan": last_scan,
+            "packages":      [_normalize_pkg(p) for p in packages],
+            "last_scan":     last_scan,
             "active_folder": active_folder,
         })
         return self._render("library.html", ctx)
@@ -124,13 +122,10 @@ class TemplateEngine:
         stats: dict = None,
         status_msg: str = "Prêt",
     ) -> str:
-        related_norm = [
-            _normalize_pkg(r) for r in (related or [])
-        ]
         ctx = _base_context("detail", stats, status_msg)
         ctx.update({
             "pkg":     _normalize_pkg(pkg_data),
-            "related": related_norm,
+            "related": [_normalize_pkg(r) for r in (related or [])],
         })
         return self._render("detail.html", ctx)
 
@@ -141,7 +136,7 @@ class TemplateEngine:
         status_msg: str = "Prêt",
     ) -> str:
         ctx = _base_context("folders", stats, status_msg)
-        ctx["folders"] = folders
+        ctx["folders"] = folders or []
         return self._render("folders.html", ctx)
 
     def render_settings(
