@@ -14,7 +14,7 @@
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .settings-section-header {
@@ -26,19 +26,28 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--tp);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
 }
 .settings-section-header .icon { font-size: 18px; }
 
 .settings-row {
-  padding: 13px 20px;
+  padding: 14px 20px;
   display: flex;
   align-items: center;
   gap: 16px;
   border-bottom: 1px solid var(--border-l);
+  flex-wrap: wrap;
+  min-height: 60px;
 }
-.settings-row:last-child { border-bottom: none; }
+.settings-row:last-child {
+  border-bottom: none;
+  border-radius: 0 0 var(--r-xl) var(--r-xl);
+}
 
-.settings-row-text { flex: 1; }
+.settings-row-text {
+  flex: 1;
+  min-width: 180px;
+}
 .row-label {
   font-size: 13px;
   color: var(--tp);
@@ -56,9 +65,10 @@
   font-family: 'Segoe UI', Arial, sans-serif;
   color: var(--tp);
   outline: none;
-  min-width: 220px;
+  width: 220px;
   height: 32px;
   transition: border-color 0.15s;
+  flex-shrink: 0;
 }
 .settings-input:focus { border-color: var(--accent); }
 
@@ -74,64 +84,10 @@
   min-width: 180px;
   height: 32px;
   cursor: pointer;
-}
-.settings-select:hover { border-color: var(--accent); }
-
-.settings-row {
-  padding: 13px 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  border-bottom: 1px solid var(--border-l);
-  flex-wrap: wrap;
-}
-.settings-row:last-child { border-bottom: none; }
-
-.settings-row-text { flex: 1; min-width: 200px; }
-
-.input-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
   flex-shrink: 0;
 }
-
-.settings-input {
-  background: var(--input);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 6px 11px;
-  font-size: 12px;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  color: var(--tp);
-  outline: none;
-  width: 200px;
-  min-width: 120px;
-  height: 32px;
-  transition: border-color 0.15s;
-}
-.settings-input:focus { border-color: var(--accent); }
-
-.settings-select {
-  background: var(--input);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: 5px 10px;
-  font-size: 12px;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  color: var(--tp);
-  outline: none;
-  min-width: 160px;
-  height: 32px;
-  cursor: pointer;
-}
 .settings-select:hover { border-color: var(--accent); }
 
-.toggle-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
 .toggle {
   width: 40px;
   height: 22px;
@@ -156,7 +112,6 @@
 }
 .toggle.on::after  { left: 21px; }
 .toggle.off::after { left: 3px; }
-.toggle-label { font-size: 12px; color: var(--ts); }
 
 .test-btn {
   background: var(--accent-l);
@@ -169,6 +124,7 @@
   font-family: 'Segoe UI', Arial, sans-serif;
   height: 32px;
   transition: all 0.15s;
+  flex-shrink: 0;
 }
 .test-btn:hover { background: var(--accent); color: #fff; }
 
@@ -176,12 +132,10 @@
   display: flex;
   gap: 6px;
   align-items: center;
+  flex-shrink: 0;
 }
 
-.save-row {
-  display: flex;
-  gap: 8px;
-}
+.save-row { display: flex; gap: 8px; }
 {% endblock %}
 
 {% block content %}
@@ -197,6 +151,7 @@
     <div class="settings-section-header">
       <span class="icon">🔌</span> APIs &amp; Données
     </div>
+
     <div class="settings-row">
       <div class="settings-row-text">
         <div class="row-label">Clé API RAWG.io</div>
@@ -209,24 +164,29 @@
         <button class="test-btn" onclick="testRawg()">Tester</button>
       </div>
     </div>
+
     <div class="settings-row">
       <div class="settings-row-text">
         <div class="row-label">Clé API IGDB (Twitch Client ID)</div>
         <div class="row-desc">Vidéos et artworks · dev.twitch.tv (gratuit)</div>
       </div>
-      <input class="settings-input" type="text" id="igdb-key"
-        placeholder="Twitch Client ID…"
-        value="{{ settings.igdb_client_id or '' }}" />
+      <div class="input-row">
+        <input class="settings-input" type="text" id="igdb-key"
+          placeholder="Twitch Client ID…"
+          value="{{ settings.igdb_client_id or '' }}" />
+      </div>
     </div>
+
     <div class="settings-row">
       <div class="settings-row-text">
         <div class="row-label">Téléchargement automatique</div>
         <div class="row-desc">Lance la récupération API après chaque scan</div>
       </div>
-      <button class="toggle {{ 'on' if settings.auto_fetch else 'off' }}"
+      <button class="toggle {{ 'on' if settings.auto_fetch == '1' else 'off' }}"
         id="toggle-auto"
         onclick="toggleAuto()"></button>
     </div>
+
   </div>
 
   <!-- Affichage -->
@@ -234,28 +194,31 @@
     <div class="settings-section-header">
       <span class="icon">🎨</span> Affichage
     </div>
+
     <div class="settings-row">
       <div class="settings-row-text">
         <div class="row-label">Taille des cartes</div>
         <div class="row-desc">Largeur minimale des cartes dans la grille</div>
       </div>
       <select class="settings-select" id="card-size">
-        <option value="160" {{ 'selected' if settings.card_min_width == 160 }}>Petites (160px)</option>
-        <option value="180" {{ 'selected' if settings.card_min_width == 180 }}>Moyennes (180px)</option>
-        <option value="220" {{ 'selected' if settings.card_min_width == 220 }}>Grandes (220px)</option>
-        <option value="260" {{ 'selected' if settings.card_min_width == 260 }}>Très grandes (260px)</option>
+        <option value="160" {% if settings.card_min_width == '160' %}selected{% endif %}>Petites (160px)</option>
+        <option value="180" {% if settings.card_min_width == '180' or not settings.card_min_width %}selected{% endif %}>Moyennes (180px)</option>
+        <option value="220" {% if settings.card_min_width == '220' %}selected{% endif %}>Grandes (220px)</option>
+        <option value="260" {% if settings.card_min_width == '260' %}selected{% endif %}>Très grandes (260px)</option>
       </select>
     </div>
+
     <div class="settings-row">
       <div class="settings-row-text">
         <div class="row-label">Langue de l'interface</div>
         <div class="row-desc">Redémarrage requis pour appliquer</div>
       </div>
       <select class="settings-select" id="lang">
-        <option value="fr" {{ 'selected' if settings.language == 'fr' }}>Français</option>
-        <option value="en" {{ 'selected' if settings.language == 'en' }}>English</option>
+        <option value="fr" {% if settings.language == 'fr' or not settings.language %}selected{% endif %}>Français</option>
+        <option value="en" {% if settings.language == 'en' %}selected{% endif %}>English</option>
       </select>
     </div>
+
   </div>
 
   <!-- Cache & BDD -->
@@ -263,24 +226,29 @@
     <div class="settings-section-header">
       <span class="icon">🗄️</span> Base de données &amp; Cache
     </div>
+
     <div class="settings-row">
       <div class="settings-row-text">
         <div class="row-label">Cache des jaquettes</div>
         <div class="row-desc">{{ settings.cache_info or 'cache/covers/ · 0 fichiers' }}</div>
       </div>
-      <button class="btn btn-danger" onclick="pybridge.clear_cache()">
+      <button class="btn btn-danger"
+        onclick="_callBridge(function(b){ b.clear_cache(); })">
         🗑️ Vider
       </button>
     </div>
+
     <div class="settings-row">
       <div class="settings-row-text">
         <div class="row-label">Réinitialiser la base de données</div>
         <div class="row-desc">Supprime tous les jeux indexés — les fichiers PKG ne sont pas affectés</div>
       </div>
-      <button class="btn btn-danger" onclick="pybridge.reset_db()">
+      <button class="btn btn-danger"
+        onclick="_callBridge(function(b){ b.reset_db(); })">
         ⚠️ Réinitialiser
       </button>
     </div>
+
   </div>
 
   <!-- Bouton sauvegarder -->
@@ -309,11 +277,11 @@ function testRawg() {
 
 function saveSettings() {
   var data = {
-    rawg_api_key:        document.getElementById('rawg-key').value.trim(),
-    igdb_client_id:      document.getElementById('igdb-key').value.trim(),
-    auto_fetch:          _autoFetch ? '1' : '0',
-    card_min_width:      document.getElementById('card-size').value,
-    language:            document.getElementById('lang').value,
+    rawg_api_key:   document.getElementById('rawg-key').value.trim(),
+    igdb_client_id: document.getElementById('igdb-key').value.trim(),
+    auto_fetch:     _autoFetch ? '1' : '0',
+    card_min_width: document.getElementById('card-size').value,
+    language:       document.getElementById('lang').value,
   };
   _callBridge(function(b) {
     b.save_settings(JSON.stringify(data));
