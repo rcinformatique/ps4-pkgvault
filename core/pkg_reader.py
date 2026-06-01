@@ -1,63 +1,235 @@
-import struct
 import re
+import struct
 from pathlib import Path
-from core.sfo_parser import get_pkg_metadata, CATEGORY_MAP
 
 
-# Magic PKG PS4
-PKG_MAGIC = 0x7F434E54
+# ------------------------------------------------------------------ #
+#  Constantes                                                          #
+# ------------------------------------------------------------------ #
 
-# Content types depuis le header (fallback si SFO absent)
-CONTENT_TYPES = {
-    0x18: "game",
-    0x19: "game",
-    0x1A: "game",
-    0x1B: "game",
-    0x1C: "dlc",
-    0x1D: "dlc",
-    0x1E: "update",
-    0x1F: "update",
-    0x20: "update",
+PKG_MAGIC  = 0x7F434E54
+SFO_MAGIC  = b"\x00PSF"
+PNG_MAGIC  = b"\x89PNG\r\n\x1a\n"
+PNG_END    = b"IEND"
+FMT_UTF8   = 0x0204
+FMT_UINT32 = 0x0404
+
+CATEGORY_MAP = {
+    "gd":  "game",
+    "gdc": "game",
+    "gda": "game",
+    "gdo": "game",
+    "gp":  "update",
+    "gdp": "update",
+    "ac":  "dlc",
+    "bd":  "game",
+    "hg":  "game",
+}
+
+CATEGORY_LABEL_MAP = {
+    "gd":  "Jeu complet PS4",
+    "gp":  "Mise à jour / Patch",
+    "ac":  "DLC / Add-on",
+    "bd":  "Blu-ray Disc",
+    "hg":  "Application",
+    "gda": "Jeu PS4 avec contenu additionnel",
+}
+
+REGION_MAP = {
+    "EP": "Europe",
+    "UP": "USA / Amérique du Nord",
+    "NP": "Amérique du Nord",
+    "JP": "Japon",
+    "KP": "Corée",
+    "HP": "Hong Kong / Asie",
+    "HB": "Hong Kong / Asie",
+    "AS": "Asie",
+    "PC": "Chine",
+    "HC": "Chine / Hong Kong",
+    "IP": "International",
+}
+
+LANG_MAP = {
+    0:  "Japonais",
+    1:  "Anglais US",
+    2:  "Français",
+    3:  "Espagnol",
+    4:  "Allemand",
+    5:  "Italien",
+    6:  "Néerlandais",
+    7:  "Portugais",
+    8:  "Russe",
+    9:  "Coréen",
+    10: "Chinois traditionnel",
+    11: "Chinois simplifié",
+    12: "Finnois",
+    13: "Suédois",
+    14: "Danois",
+    15: "Norvégien",
+    16: "Polonais",
+    17: "Portugais BR",
+    18: "Anglais UK",
 }
 
 
-def _detect_type_by_filename(filename: str) -> str:
-    """Détection du type par le nom de fichier en fallback."""
-    name = filename.upper()
-    if any(p in name for p in [
-        "BACKPORT", "[BP]", "_BP_", "-BP-", ".BP.", "BP9.", "BP7."
-    ]):
-        return "backport"
-    if any(p in name for p in ["UPDATE", "_UP_", "PATCH"]):
-        return "update"
-    if any(p in name for p in ["DLC", "ADDON"]):
-        return "dlc"
-    return "game"
+# ------------------------------------------------------------------ #
+#  Parsers SFO                                                         #
+# ------------------------------------------------------------------ #
+
+def _read_content_id_from_header(data: bytes) -> str:
+    raw = data[0x40:0x40 + 36]
+    return raw.split(b"\x00")[0].decode("ascii", errors="ignore")
 
 
-def _clean_title(stem: str) -> str:
-    """Nettoie le nom de fichier pour en extraire un titre lisible."""
-    title = stem
-    title = re.sub(r'^\[.*?\]\s*-?\s*', '', title)
-    title = re.sub(
-        r'[_\-]?(CUSA|CUSE|EP|HB|HP|NPEA|NPUB|BLES|BLUS)\w+',
-        '', title, flags=re.IGNORECASE
+def _parse_sfo(data: bytes, offset: int) -> dict:
+    sfo = data[offset:]
+    if sfo[:4] != SFO_MAGIC:
+        return {}
+
+    key_table_offset  = struct.unpack_from("<I", sfo, 0x08)[0]
+    data_table_offset = struct.unpack_from("<I", sfo, 0x0C)[0]
+    entry_count       = struct.unpack_from("<I", sfo, 0x10)[0]
+
+    result = {}
+    for i in range(entry_count):
+        entry       = 0x14 + i * 16
+        key_offset  = struct.unpack_from("<H", sfo, entry)[0]
+        fmt         = struct.unpack_from("<H", sfo, entry + 2)[0]
+        data_len    = struct.unpack_from("<I", sfo, entry + 4)[0]
+        data_offset = struct.unpack_from("<I", sfo, entry + 12)[0]
+
+        key_start = key_table_offset + key_offset
+        key_end   = sfo.index(b"\x00", key_start)
+        key       = sfo[key_start:key_end].decode("utf-8", errors="ignore")
+
+        value_start = data_table_offset + data_offset
+        raw         = sfo[value_start:value_start + data_len]
+
+        if fmt == FMT_UTF8:
+            value = raw.split(b"\x00")[0].decode("utf-8", errors="ignore")
+        elif fmt == FMT_UINT32:
+            value = struct.unpack_from("<I", raw, 0)[0]
+        else:
+            value = raw.hex()
+
+        result[key] = value
+
+    return result
+
+
+def _parse_system_ver(value: int) -> str:
+    if not isinstance(value, int) or value == 0:
+        return ""
+    major = (value >> 24) & 0xFF
+    minor = (value >> 16) & 0xFF
+    return f"{major}.{minor:02d}" if major else f"0x{value:08X}"
+
+
+def _parse_sdk(pubtoolinfo: str) -> str:
+    if not pubtoolinfo:
+        return ""
+    match = re.search(r"sdk_ver=([0-9A-Fa-f]+)", pubtoolinfo)
+    if not match:
+        return ""
+    try:
+        value = int(match.group(1), 16)
+        return _parse_system_ver(value)
+    except ValueError:
+        return match.group(1)
+
+
+def _parse_content_id(content_id: str) -> dict:
+    result = {
+        "region_code":    "",
+        "region":         "",
+        "publisher_code": "",
+        "title_id":       "",
+        "product_code":   "",
+        "internal_name":  "",
+    }
+    content_id = str(content_id or "").strip().replace("\x00", "")
+    match = re.match(
+        r"^([A-Z]{2})(\d{4})-((?:CUSA|CUSE)\d{5})_([A-Z0-9]{2})-(.+)$",
+        content_id
     )
-    title = re.sub(r'[-_]?v?\d+\.\d+[\d\.]*', '', title, flags=re.IGNORECASE)
-    title = re.sub(r'[-_]?app[_\-]ver.*', '', title, flags=re.IGNORECASE)
-    for pattern in [
-        r'\bBACKPORT\b', r'\bUPDATE\b', r'\bPATCH\b',
-        r'\bDLC\b', r'\bADDON\b', r'\bPS4\b', r'\bPKG\b', r'\bFW\b',
-    ]:
-        title = re.sub(pattern, '', title, flags=re.IGNORECASE)
-    title = re.sub(r'[_\-\.]+', ' ', title)
-    title = re.sub(r'\s+', ' ', title).strip()
-    title = ' '.join(w.capitalize() for w in title.split())
-    return title if title else stem
+    if not match:
+        return result
+    rc, pub, tid, pc, name = match.groups()
+    result["region_code"]    = rc
+    result["region"]         = REGION_MAP.get(rc, "Inconnue")
+    result["publisher_code"] = pub
+    result["title_id"]       = tid
+    result["product_code"]   = pc
+    result["internal_name"]  = name
+    return result
+
+
+def _parse_languages(mask: int) -> list[str]:
+    if not isinstance(mask, int):
+        return []
+    return [name for bit, name in LANG_MAP.items() if mask & (1 << bit)]
+
+
+def _get_localized_titles(sfo: dict) -> dict:
+    return {
+        k: sfo[k]
+        for k in sorted(sfo.keys())
+        if re.match(r"^TITLE_\d{2}$", k)
+    }
+
+
+def _clean_title_for_api(title: str) -> str:
+    if not title:
+        return ""
+    title = re.sub(r"™|®|©", "", title)
+    title = re.sub(r"\s+", " ", title)
+    return title.strip()
+
+
+# ------------------------------------------------------------------ #
+#  Extraction PNG                                                      #
+# ------------------------------------------------------------------ #
+
+def _find_png_offsets(data: bytes) -> list[int]:
+    offsets = []
+    pos     = 0
+    while True:
+        pos = data.find(PNG_MAGIC, pos)
+        if pos == -1:
+            break
+        offsets.append(pos)
+        pos += len(PNG_MAGIC)
+    return offsets
+
+
+def _extract_png(data: bytes, offset: int) -> bytes | None:
+    end = data.find(PNG_END, offset)
+    if end == -1:
+        return None
+    return data[offset:end + 8]
+
+
+def extract_icon0_png(data: bytes) -> bytes | None:
+    """Extrait icon0.png (premier PNG) depuis les bytes du PKG."""
+    offsets = _find_png_offsets(data)
+    if not offsets:
+        return None
+    return _extract_png(data, offsets[0])
+
+
+# ------------------------------------------------------------------ #
+#  Helpers                                                             #
+# ------------------------------------------------------------------ #
+
+def _detect_backport(filename: str) -> bool:
+    name = filename.upper()
+    return any(p in name for p in [
+        "BACKPORT", "[BP]", "_BP_", "-BP-", ".BP.",
+        "BP9.", "BP7.", "5.05", "6.72", "7.XX",
+    ])
 
 
 def _format_size(size_bytes: int) -> str:
-    """Convertit un nombre d'octets en chaîne lisible."""
     if size_bytes >= 1_073_741_824:
         return f"{size_bytes / 1_073_741_824:.1f} Go"
     if size_bytes >= 1_048_576:
@@ -65,100 +237,113 @@ def _format_size(size_bytes: int) -> str:
     return f"{size_bytes / 1024:.1f} Ko"
 
 
-def _extract_firmware_from_filename(stem: str) -> str:
-    """Extrait la version firmware depuis le nom de fichier."""
-    patterns = [
-        r'fw[-_]?(\d+\.\d+)',
-        r'firmware[-_]?(\d+\.\d+)',
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, stem, re.IGNORECASE)
-        if match:
-            return match.group(1)
-    return ""
-
+# ------------------------------------------------------------------ #
+#  Fonction principale                                                 #
+# ------------------------------------------------------------------ #
 
 def read_pkg(filepath: str | Path) -> dict | None:
     """
-    Lit un fichier PKG et retourne ses métadonnées complètes.
-    Priorité : param.sfo > header PKG > nom de fichier.
+    Lit un fichier PKG PS4 et retourne toutes ses métadonnées.
     Retourne None si le fichier n'est pas un PKG valide.
     """
-    filepath = Path(filepath)
+    path = Path(filepath)
 
     try:
-        file_size = filepath.stat().st_size
-
-        with open(filepath, "rb") as f:
-            # Vérifie la signature magic
-            magic = struct.unpack(">I", f.read(4))[0]
-            if magic != PKG_MAGIC:
-                return None
-
-            # Content type depuis le header
-            f.seek(0x018)
-            content_type = struct.unpack(">I", f.read(4))[0]
-
-            # Content-ID depuis le header
-            f.seek(0x040)
-            raw_cid    = f.read(36)
-            header_cid = raw_cid.split(b"\x00")[0].decode(
-                "ascii", errors="ignore"
-            ).strip()
-
-        # Métadonnées depuis param.sfo
-        sfo_meta = get_pkg_metadata(filepath)
-
-        # Titre : SFO > nom de fichier nettoyé
-        title = sfo_meta.get("title") or _clean_title(filepath.stem)
-
-        # Content-ID : SFO > header
-        content_id = sfo_meta.get("content_id") or header_cid or "UNKNOWN"
-
-        # Type : SFO > header > nom de fichier
-        pkg_type = sfo_meta.get("pkg_type")
-        if not pkg_type:
-            pkg_type = CONTENT_TYPES.get(content_type)
-        if not pkg_type:
-            pkg_type = _detect_type_by_filename(filepath.name)
-
-        # Détection backport par nom de fichier
-        if pkg_type == "game":
-            name_upper = filepath.name.upper()
-            if any(p in name_upper for p in [
-                "BACKPORT", "[BP]", "_BP_", "-BP-", ".BP.", "BP9.", "BP7."
-            ]):
-                pkg_type = "backport"
-
-        # Firmware : SFO > nom de fichier
-        firmware = sfo_meta.get("firmware") or \
-                   _extract_firmware_from_filename(filepath.stem)
-
-        return {
-            "title":      title,
-            "title_api":  "",
-            "type":       pkg_type,
-            "content_id": content_id,
-            "app_ver":    sfo_meta.get("app_ver", ""),
-            "version":    sfo_meta.get("version", ""),
-            "firmware":   firmware,
-            "region":     sfo_meta.get("region", ""),
-            "languages":  sfo_meta.get("languages", []),
-            "category":   sfo_meta.get("category", ""),
-            "size_bytes": file_size,
-            "size_str":   _format_size(file_size),
-            "filepath":   str(filepath),
-            "filename":   filepath.name,
-            "cover_path": "",
-            "screenshots": [],
-            "description": "",
-            "developer":   "",
-            "publisher":   "",
-            "release_date": "",
-            "genres":      [],
-            "rating":      0,
-            "api_fetched": 0,
-        }
-
-    except (OSError, struct.error):
+        file_size = path.stat().st_size
+        data      = path.read_bytes()
+    except OSError:
         return None
+
+    # Vérifie le magic
+    magic = struct.unpack_from(">I", data, 0)[0]
+    if magic != PKG_MAGIC:
+        return None
+
+    # Content-ID header
+    content_id_header = _read_content_id_from_header(data)
+
+    # Trouve et parse le SFO
+    sfo_offset = data.find(SFO_MAGIC)
+    if sfo_offset == -1:
+        return None
+
+    sfo = _parse_sfo(data, sfo_offset)
+    if not sfo:
+        return None
+
+    # Champs SFO
+    title       = sfo.get("TITLE", "")
+    title_id    = sfo.get("TITLE_ID", "")
+    content_id  = str(sfo.get("CONTENT_ID", "")).strip() or content_id_header.strip()
+    app_ver     = sfo.get("APP_VER", "")
+    version     = sfo.get("VERSION", "")
+    category    = sfo.get("CATEGORY", "").lower()
+    system_ver  = sfo.get("SYSTEM_VER", 0)
+    pubtoolinfo = sfo.get("PUBTOOLINFO", "")
+    lang_mask   = sfo.get("LANG", 0)
+
+    # Parse Content-ID
+    cid_info       = _parse_content_id(content_id)
+    final_title_id = title_id or cid_info["title_id"]
+
+    # Type PKG
+    pkg_type = CATEGORY_MAP.get(category, "game")
+    if pkg_type == "game" and _detect_backport(path.name):
+        pkg_type = "backport"
+
+    # Région
+    region = cid_info["region"] or REGION_MAP.get(content_id[:2], "")
+
+    return {
+        # Fichier
+        "filepath":    str(path),
+        "filename":    path.name,
+        "size_bytes":  file_size,
+        "size_str":    _format_size(file_size),
+
+        # Identifiants
+        "title":           title,
+        "title_api":       _clean_title_for_api(title),
+        "title_id":        final_title_id,
+        "content_id":      content_id,
+        "internal_name":   cid_info["internal_name"],
+        "product_code":    cid_info["product_code"],
+        "publisher_code":  cid_info["publisher_code"],
+
+        # Type
+        "type":            pkg_type,
+        "category":        category,
+        "category_label":  CATEGORY_LABEL_MAP.get(category, "Inconnu"),
+
+        # Versions
+        "app_ver":         app_ver,
+        "version":         version,
+        "firmware":        _parse_system_ver(system_ver),
+        "system_ver_hex":  f"0x{system_ver:08X}" if isinstance(system_ver, int) else "",
+        "sdk":             _parse_sdk(pubtoolinfo),
+
+        # Région / Distribution
+        "region":          region,
+        "store_code":      cid_info["region_code"],
+        "platform":        "PS4",
+        "distribution":    "Digital" if "digital" in pubtoolinfo.lower() else "Inconnue",
+        "pubtoolinfo":     pubtoolinfo,
+
+        # Langues
+        "languages":        _parse_languages(lang_mask),
+        "lang_mask":        f"0x{lang_mask:08X}" if isinstance(lang_mask, int) else "",
+        "localized_titles": _get_localized_titles(sfo),
+
+        # API (vide au départ)
+        "title_api_result": "",
+        "description":      "",
+        "developer":        "",
+        "publisher":        "",
+        "release_date":     "",
+        "genres":           [],
+        "rating":           0,
+        "cover_path":       "",
+        "screenshots":      [],
+        "video_url":        "",
+        "api_fetched":      0,
+    }
