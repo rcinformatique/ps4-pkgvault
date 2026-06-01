@@ -12,7 +12,7 @@ from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import QSize, QObject, pyqtSlot, QUrl, QThread, pyqtSignal
 from ui.template_engine import TemplateEngine
 from core.database import Database
-from core.scanner import scan_folder, count_by_type, format_total_size
+from core.scanner import scan_folder
 from core.cover_loader import CoverLoaderThread
 from core.api_client import ApiWorkerThread
 
@@ -22,10 +22,8 @@ from core.api_client import ApiWorkerThread
 # ------------------------------------------------------------------ #
 
 class ScanThread(QThread):
-    """Scanne un dossier en arrière-plan."""
-
-    scan_done    = pyqtSignal(list, list)
-    progress     = pyqtSignal(int, int)
+    scan_done = pyqtSignal(list, list)
+    progress  = pyqtSignal(int, int)
 
     def __init__(self, folders: list[str], db: Database, parent=None):
         super().__init__(parent)
@@ -35,7 +33,6 @@ class ScanThread(QThread):
     def run(self):
         all_packages = []
         all_errors   = []
-
         for folder in self._folders:
             pkgs, errors = scan_folder(
                 folder,
@@ -44,7 +41,6 @@ class ScanThread(QThread):
             )
             all_packages.extend(pkgs)
             all_errors.extend(errors)
-
         self.scan_done.emit(all_packages, all_errors)
 
 
@@ -53,7 +49,6 @@ class ScanThread(QThread):
 # ------------------------------------------------------------------ #
 
 class PyBridge(QObject):
-    """Pont Python ↔ JavaScript."""
 
     def __init__(self, window, parent=None):
         super().__init__(parent)
@@ -137,7 +132,7 @@ class PyBridge(QObject):
 
     @pyqtSlot()
     def toggle_view(self):
-        print("Toggle vue")
+        self._win.on_toggle_view()
 
     @pyqtSlot(str)
     def open_related(self, content_id: str):
@@ -160,6 +155,7 @@ class MainWindow(QMainWindow):
         self._active_sort   = "title"
         self._search_text   = ""
         self._status_msg    = "Prêt"
+        self._view_mode     = "grid"
         self._scan_thread   = None
         self._cover_thread  = None
         self._api_thread    = None
@@ -194,27 +190,16 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _restore_session(self):
-        """Charge les données au démarrage."""
+        self._active_filter = self._db.get_setting("active_filter", "game")
+        self._view_mode     = self._db.get_setting("view_mode", "grid")
 
-        # Charge depuis la BDD
         cached = self._db.get_all_games()
         if cached:
-            self._packages = cached
-            counts = self._db.count_by_type()
-            total  = self._db.get_total_size()
-            size_str = self._format_size(total)
-            self._status_msg = (
-                f"{len(cached)} PKG chargés depuis la base de données"
-            )
+            self._packages   = cached
+            self._status_msg = f"{len(cached)} PKG chargés depuis la base de données"
 
-        # Restaure le filtre
-        saved_filter = self._db.get_setting("active_filter", "game")
-        self._active_filter = saved_filter
-
-        # Affiche la bibliothèque
         self._show_library()
 
-        # Rescanne les dossiers en arrière-plan
         folders = self._db.get_folders()
         if folders:
             self._start_scan(folders)
@@ -227,7 +212,6 @@ class MainWindow(QMainWindow):
         if page != self._active_page:
             self._previous_page = self._active_page
         self._active_page = page
-
         if page == "library":
             self._show_library()
         elif page == "folders":
@@ -280,8 +264,12 @@ class MainWindow(QMainWindow):
             if t in counts:
                 counts[t] += 1
             total_bytes += pkg.get("size_bytes", 0)
-        size_str = self._format_size(total_bytes)
-        total_go = f"{total_bytes / 1_073_741_824:.0f}" if total_bytes >= 1_073_741_824 else "0"
+        if total_bytes >= 1_073_741_824:
+            size_str = f"{total_bytes / 1_073_741_824:.1f} Go"
+            total_go = f"{total_bytes / 1_073_741_824:.0f}"
+        else:
+            size_str = f"{total_bytes / 1_048_576:.0f} Mo"
+            total_go = "0"
         return {**counts, "total_size": size_str, "total_go": total_go}
 
     def _format_size(self, size_bytes: int) -> str:
@@ -329,28 +317,31 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _show_library(self):
-        pkgs  = self._get_filtered_packages()
-        stats = self._get_stats()
-        total = len(pkgs)
-        size  = stats.get("total_size", "0 Go")
-        count_str = f"{total} fichier{'s' if total > 1 else ''} · {size}"
+        pkgs           = self._get_filtered_packages()
+        stats          = self._get_stats()
+        total          = len(pkgs)
+        size           = stats.get("total_size", "0 Go")
+        count_str      = f"{total} fichier{'s' if total > 1 else ''} · {size}"
+        card_min_width = int(self._db.get_setting("card_min_width", "180"))
 
         html = self._engine.render_library(
-            packages      = pkgs,
-            stats         = stats,
-            active_filter = self._active_filter,
-            active_sort   = self._active_sort,
-            status_msg    = self._status_msg,
-            count_str     = count_str,
+            packages       = pkgs,
+            stats          = stats,
+            active_filter  = self._active_filter,
+            active_sort    = self._active_sort,
+            status_msg     = self._status_msg,
+            count_str      = count_str,
+            view_mode      = self._view_mode,
+            card_min_width = card_min_width,
         )
         self._load_html(html, show_back=False)
 
     def _show_folders(self):
         folders = self._db.get_folders_full()
         html = self._engine.render_folders(
-            folders=folders,
-            stats=self._get_stats(),
-            status_msg=self._status_msg,
+            folders    = folders,
+            stats      = self._get_stats(),
+            status_msg = self._status_msg,
         )
         self._load_html(html, show_back=False)
 
@@ -379,7 +370,6 @@ class MainWindow(QMainWindow):
                 if p.get("filepath") != pkg_data.get("filepath")
                 and cusa in p.get("content_id", "")
             ]
-
         html = self._engine.render_detail(
             pkg_data   = pkg_data,
             related    = related,
@@ -393,7 +383,6 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _start_scan(self, folders: list[str]):
-        """Lance le scan en arrière-plan."""
         if self._scan_thread and self._scan_thread.isRunning():
             self._scan_thread.quit()
             self._scan_thread.wait()
@@ -406,20 +395,13 @@ class MainWindow(QMainWindow):
         self._scan_thread.start()
 
     def _on_scan_done(self, packages: list, errors: list):
-        """Appelé quand le scan est terminé."""
-        self._packages   = packages
-        count            = len(packages)
+        self._packages   = self._db.get_all_games()
+        count            = len(self._packages)
         self._status_msg = f"{count} PKG chargés"
-
         if errors:
             self._status_msg += f" · {len(errors)} ignorés"
-
         self._show_library()
-
-        # Lance le chargement des covers
-        self._start_cover_loader(packages)
-
-        # Lance l'API pour les jeux sans données
+        self._start_cover_loader(self._packages)
         self._start_api_worker()
 
     # ------------------------------------------------------------------ #
@@ -427,19 +409,15 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _start_cover_loader(self, packages: list[dict]):
-        """Lance le chargement des jaquettes."""
         if self._cover_thread and self._cover_thread.isRunning():
             self._cover_thread.stop()
             self._cover_thread.wait()
-
         self._cover_thread = CoverLoaderThread(packages)
         self._cover_thread.cover_ready.connect(self._on_cover_ready)
         self._cover_thread.start()
 
     def _on_cover_ready(self, content_id: str, cover_path: str):
-        """Jaquette disponible — met à jour la BDD."""
         self._db.update_cover(content_id, cover_path)
-        # Met à jour le package en mémoire
         for pkg in self._packages:
             if pkg.get("content_id") == content_id:
                 pkg["cover_path"] = cover_path
@@ -450,11 +428,10 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _start_api_worker(self):
-        """Lance la récupération API."""
-        rawg_key        = self._db.get_setting("rawg_api_key", "")
-        igdb_client_id  = self._db.get_setting("igdb_client_id", "")
-        igdb_secret     = self._db.get_setting("igdb_client_secret", "")
-        auto_fetch      = self._db.get_setting("auto_fetch", "1")
+        rawg_key       = self._db.get_setting("rawg_api_key", "")
+        igdb_client_id = self._db.get_setting("igdb_client_id", "")
+        igdb_secret    = self._db.get_setting("igdb_client_secret", "")
+        auto_fetch     = self._db.get_setting("auto_fetch", "1")
 
         if auto_fetch != "1" or not rawg_key:
             return
@@ -480,7 +457,6 @@ class MainWindow(QMainWindow):
         self._api_thread.start()
 
     def _on_game_updated(self, content_id: str, api_data: dict):
-        """Données API reçues — met à jour BDD et packages."""
         self._db.update_api_data(content_id, api_data)
         for pkg in self._packages:
             if pkg.get("content_id") == content_id:
@@ -506,7 +482,7 @@ class MainWindow(QMainWindow):
         self._show_library()
 
     # ------------------------------------------------------------------ #
-    #  Slots utilisateur                                                   #
+    #  Slots                                                               #
     # ------------------------------------------------------------------ #
 
     def on_card_clicked(self, filepath: str):
@@ -533,6 +509,11 @@ class MainWindow(QMainWindow):
         self._active_sort = key
         self._show_library()
 
+    def on_toggle_view(self):
+        self._view_mode = "list" if self._view_mode == "grid" else "grid"
+        self._db.set_setting("view_mode", self._view_mode)
+        self._show_library()
+
     def on_add_folder(self):
         folder = QFileDialog.getExistingDirectory(
             self,
@@ -542,7 +523,6 @@ class MainWindow(QMainWindow):
         )
         if not folder:
             return
-
         added = self._db.add_folder(folder)
         if not added:
             QMessageBox.information(
@@ -551,12 +531,10 @@ class MainWindow(QMainWindow):
                 f"Ce dossier est déjà dans votre bibliothèque :\n{folder}"
             )
             return
-
         folders = self._db.get_folders()
         self._start_scan(folders)
 
     def on_rescan_folder(self, path: str):
-        """Rescanne un dossier spécifique."""
         folders = self._db.get_folders()
         if path in folders:
             self._start_scan([path])
@@ -571,7 +549,6 @@ class MainWindow(QMainWindow):
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
-
         self._db.remove_folder(path)
         self._packages = self._db.get_all_games()
         self._show_folders()
@@ -596,10 +573,7 @@ class MainWindow(QMainWindow):
                     break
             self._db.delete_by_filepath(filepath)
         except OSError as e:
-            QMessageBox.critical(
-                self, "Erreur",
-                f"Impossible de renommer :\n{e}"
-            )
+            QMessageBox.critical(self, "Erreur", f"Impossible de renommer :\n{e}")
 
     def on_delete(self, filepath: str):
         reply = QMessageBox.warning(
@@ -613,7 +587,6 @@ class MainWindow(QMainWindow):
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
-
         try:
             os.remove(filepath)
             self._db.delete_by_filepath(filepath)
@@ -623,17 +596,13 @@ class MainWindow(QMainWindow):
             ]
             self._show_library()
         except OSError as e:
-            QMessageBox.critical(
-                self, "Erreur",
-                f"Impossible de supprimer :\n{e}"
-            )
+            QMessageBox.critical(self, "Erreur", f"Impossible de supprimer :\n{e}")
 
     def on_open_related(self, content_id: str):
         pkg = self._db.get_game(content_id)
         if not pkg:
             pkg = next(
-                (p for p in self._packages
-                 if p.get("content_id") == content_id),
+                (p for p in self._packages if p.get("content_id") == content_id),
                 None
             )
         if pkg:
@@ -650,7 +619,6 @@ class MainWindow(QMainWindow):
             pass
 
     def on_test_rawg(self, key: str):
-        """Teste la clé API RAWG."""
         if not key:
             return
         try:
@@ -660,15 +628,9 @@ class MainWindow(QMainWindow):
                 timeout=5
             )
             if resp.status_code == 200:
-                QMessageBox.information(
-                    self, "RAWG.io",
-                    "✅ Clé API valide !"
-                )
+                QMessageBox.information(self, "RAWG.io", "✅ Clé API valide !")
             else:
-                QMessageBox.warning(
-                    self, "RAWG.io",
-                    f"❌ Clé invalide (code {resp.status_code})"
-                )
+                QMessageBox.warning(self, "RAWG.io", f"❌ Clé invalide (code {resp.status_code})")
         except Exception as e:
             QMessageBox.critical(self, "Erreur", str(e))
 
@@ -680,28 +642,24 @@ class MainWindow(QMainWindow):
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
-
         from core.cover_loader import COVERS_DIR, SCREENSHOTS_DIR
         import shutil
         for d in [COVERS_DIR, SCREENSHOTS_DIR]:
             if d.exists():
                 shutil.rmtree(d)
                 d.mkdir(parents=True)
-
         self._status_msg = "Cache vidé"
         self._show_settings()
 
     def on_reset_db(self):
         reply = QMessageBox.warning(
             self, "Réinitialiser la base de données",
-            "Supprimer tous les jeux indexés ?\n\n"
-            "Les fichiers PKG ne seront pas affectés.",
+            "Supprimer tous les jeux indexés ?\n\nLes fichiers PKG ne seront pas affectés.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
-
         self._db.close()
         from core.database import DB_PATH
         if DB_PATH.exists():

@@ -98,6 +98,8 @@ class TemplateEngine:
         active_folder: str = "",
         status_msg: str = "Prêt",
         count_str: str = "",
+        view_mode: str = "grid",
+        card_min_width: int = 180,
     ) -> str:
         s = stats or DEFAULT_STATS
         if not count_str:
@@ -109,9 +111,11 @@ class TemplateEngine:
             active_filter, active_sort, count_str
         )
         ctx.update({
-            "packages":      [_normalize_pkg(p) for p in packages],
-            "last_scan":     last_scan,
-            "active_folder": active_folder,
+            "packages":       [_normalize_pkg(p) for p in packages],
+            "last_scan":      last_scan,
+            "active_folder":  active_folder,
+            "view_mode":      view_mode,
+            "card_min_width": card_min_width,
         })
         return self._render("library.html", ctx)
 
