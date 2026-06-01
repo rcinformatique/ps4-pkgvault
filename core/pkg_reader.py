@@ -221,12 +221,42 @@ def extract_icon0_png(data: bytes) -> bytes | None:
 #  Helpers                                                             #
 # ------------------------------------------------------------------ #
 
-def _detect_backport(filename: str) -> bool:
-    name = filename.upper()
-    return any(p in name for p in [
-        "BACKPORT", "[BP]", "_BP_", "-BP-", ".BP.",
-        "BP9.", "BP7.", "5.05", "6.72", "7.XX",
-    ])
+def _detect_backport_from_sfo(
+    category: str,
+    system_ver: int,
+    pubtoolinfo: str
+) -> bool:
+    """
+    Détecte un backport depuis les données SFO uniquement.
+    Un backport a un sdk_ver inférieur au system_ver.
+    Ex: system_ver=6.80, sdk_ver=5.05 → backport
+    """
+    if category not in ("gp", "gd"):
+        return False
+
+    if not pubtoolinfo:
+        return False
+
+    import re
+    match = re.search(r"sdk_ver=([0-9A-Fa-f]+)", pubtoolinfo)
+    if not match:
+        return False
+
+    try:
+        sdk_int = int(match.group(1), 16)
+    except ValueError:
+        return False
+
+    # sdk_ver et system_ver ont le même format 0xMMmmxxxx
+    # Si le SDK est significativement inférieur au firmware → backport
+    sdk_major    = (sdk_int    >> 24) & 0xFF
+    system_major = (system_ver >> 24) & 0xFF if isinstance(system_ver, int) else 0
+
+    if system_major == 0:
+        return False
+
+    # Backport si SDK au moins 1 version majeure en dessous
+    return sdk_major < system_major
 
 
 def _format_size(size_bytes: int) -> str:
@@ -288,8 +318,11 @@ def read_pkg(filepath: str | Path) -> dict | None:
 
     # Type PKG
     pkg_type = CATEGORY_MAP.get(category, "game")
-    if pkg_type == "game" and _detect_backport(path.name):
-        pkg_type = "backport"
+
+    # Détection backport depuis SFO uniquement
+    if pkg_type in ("game", "update"):
+        if _detect_backport_from_sfo(category, system_ver, pubtoolinfo):
+            pkg_type = "backport"
 
     # Région
     region = cid_info["region"] or REGION_MAP.get(content_id[:2], "")
