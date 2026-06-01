@@ -101,57 +101,89 @@ class Database:
         """Insère ou met à jour un jeu. Retourne l'id."""
         now = datetime.now().isoformat()
 
-        languages   = json.dumps(pkg_data.get("languages",   []), ensure_ascii=False)
-        genres      = json.dumps(pkg_data.get("genres",      []), ensure_ascii=False)
+        languages = json.dumps(pkg_data.get("languages", []), ensure_ascii=False)
+        genres = json.dumps(pkg_data.get("genres", []), ensure_ascii=False)
         screenshots = json.dumps(pkg_data.get("screenshots", []), ensure_ascii=False)
 
+        # Vérifie si le filepath existe déjà
+        existing = self._conn.execute(
+            "SELECT id, content_id FROM games WHERE filepath = ?",
+            (pkg_data.get("filepath", ""),)
+        ).fetchone()
+
+        if existing:
+            # Met à jour par filepath
+            self._conn.execute("""
+                               UPDATE games
+                               SET title        = COALESCE(NULLIF(:title, ''), title),
+                                   type         = :type,
+                                   category     = :category,
+                                   app_ver      = :app_ver,
+                                   firmware     = :firmware,
+                                   size_bytes   = :size_bytes,
+                                   size_str     = :size_str,
+                                   region       = :region,
+                                   languages    = :languages,
+                                   last_scanned = :last_scanned
+                               WHERE filepath = :filepath
+                               """, {
+                                   "title": pkg_data.get("title", ""),
+                                   "type": pkg_data.get("type", "game"),
+                                   "category": pkg_data.get("category", ""),
+                                   "app_ver": pkg_data.get("app_ver", ""),
+                                   "firmware": pkg_data.get("firmware", ""),
+                                   "size_bytes": pkg_data.get("size_bytes", 0),
+                                   "size_str": pkg_data.get("size_str", ""),
+                                   "region": pkg_data.get("region", ""),
+                                   "languages": languages,
+                                   "last_scanned": now,
+                                   "filepath": pkg_data.get("filepath", ""),
+                               })
+            self._conn.commit()
+            return existing["id"]
+
+        # Génère un content_id unique si conflit
+        content_id = pkg_data.get("content_id", "UNKNOWN")
+        existing_cid = self._conn.execute(
+            "SELECT id FROM games WHERE content_id = ?",
+            (content_id,)
+        ).fetchone()
+
+        if existing_cid:
+            # Ajoute le type au content_id pour le rendre unique
+            pkg_type = pkg_data.get("type", "game")
+            content_id = f"{content_id}_{pkg_type.upper()}"
+
         cur = self._conn.execute("""
-            INSERT INTO games (
-                content_id, title, type, category,
-                app_ver, version, firmware,
-                size_bytes, size_str, filepath, filename,
-                region, languages, genres, screenshots,
-                date_added, last_scanned
-            ) VALUES (
-                :content_id, :title, :type, :category,
-                :app_ver, :version, :firmware,
-                :size_bytes, :size_str, :filepath, :filename,
-                :region, :languages, :genres, :screenshots,
-                :date_added, :last_scanned
-            )
-            ON CONFLICT(content_id) DO UPDATE SET
-                title        = COALESCE(NULLIF(excluded.title, ''), games.title),
-                type         = excluded.type,
-                category     = excluded.category,
-                app_ver      = excluded.app_ver,
-                version      = excluded.version,
-                firmware     = excluded.firmware,
-                size_bytes   = excluded.size_bytes,
-                size_str     = excluded.size_str,
-                filepath     = excluded.filepath,
-                filename     = excluded.filename,
-                region       = excluded.region,
-                languages    = excluded.languages,
-                last_scanned = excluded.last_scanned
-        """, {
-            "content_id":  pkg_data.get("content_id", "UNKNOWN"),
-            "title":       pkg_data.get("title", ""),
-            "type":        pkg_data.get("type", "game"),
-            "category":    pkg_data.get("category", ""),
-            "app_ver":     pkg_data.get("app_ver", ""),
-            "version":     pkg_data.get("version", ""),
-            "firmware":    pkg_data.get("firmware", ""),
-            "size_bytes":  pkg_data.get("size_bytes", 0),
-            "size_str":    pkg_data.get("size_str", ""),
-            "filepath":    pkg_data.get("filepath", ""),
-            "filename":    pkg_data.get("filename", ""),
-            "region":      pkg_data.get("region", ""),
-            "languages":   languages,
-            "genres":      genres,
-            "screenshots": screenshots,
-            "date_added":  now,
-            "last_scanned": now,
-        })
+                                 INSERT INTO games (content_id, title, type, category,
+                                                    app_ver, version, firmware,
+                                                    size_bytes, size_str, filepath, filename,
+                                                    region, languages, genres, screenshots,
+                                                    date_added, last_scanned)
+                                 VALUES (:content_id, :title, :type, :category,
+                                         :app_ver, :version, :firmware,
+                                         :size_bytes, :size_str, :filepath, :filename,
+                                         :region, :languages, :genres, :screenshots,
+                                         :date_added, :last_scanned)
+                                 """, {
+                                     "content_id": content_id,
+                                     "title": pkg_data.get("title", ""),
+                                     "type": pkg_data.get("type", "game"),
+                                     "category": pkg_data.get("category", ""),
+                                     "app_ver": pkg_data.get("app_ver", ""),
+                                     "version": pkg_data.get("version", ""),
+                                     "firmware": pkg_data.get("firmware", ""),
+                                     "size_bytes": pkg_data.get("size_bytes", 0),
+                                     "size_str": pkg_data.get("size_str", ""),
+                                     "filepath": pkg_data.get("filepath", ""),
+                                     "filename": pkg_data.get("filename", ""),
+                                     "region": pkg_data.get("region", ""),
+                                     "languages": languages,
+                                     "genres": genres,
+                                     "screenshots": screenshots,
+                                     "date_added": now,
+                                     "last_scanned": now,
+                                 })
         self._conn.commit()
         return cur.lastrowid
 

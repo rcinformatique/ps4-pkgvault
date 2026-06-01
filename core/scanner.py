@@ -7,18 +7,6 @@ def scan_folder(
     db=None,
     progress_callback=None,
 ) -> tuple[list[dict], list[str]]:
-    """
-    Scanne récursivement un dossier à la recherche de fichiers .pkg.
-
-    Args:
-        folder_path       : dossier à scanner
-        db                : instance Database (optionnel)
-        progress_callback : fonction(current, total) pour la progression
-
-    Retourne :
-        packages : liste de dict (un par PKG valide)
-        errors   : liste de chemins de fichiers illisibles
-    """
     folder_path = Path(folder_path)
     packages    = []
     errors      = []
@@ -28,22 +16,26 @@ def scan_folder(
 
     pkg_files = sorted(folder_path.rglob("*.pkg"))
     total     = len(pkg_files)
+    print(f"PKG trouvés sur disque : {total}")
 
     for i, pkg_file in enumerate(pkg_files):
-
         if progress_callback:
             progress_callback(i + 1, total)
 
+        print(f"Lecture : {pkg_file.name}")
         result = read_pkg(pkg_file)
 
         if result is not None:
+            print(f"  ✅ OK — type: {result.get('type')} | title: {result.get('title')}")
             packages.append(result)
             if db:
                 db.upsert_game(result)
                 _auto_link_relations(result, db)
         else:
+            print(f"  ❌ ECHEC — fichier ignoré")
             errors.append(str(pkg_file))
 
+    print(f"Total scanné : {len(packages)} OK, {len(errors)} erreurs")
     return packages, errors
 
 
