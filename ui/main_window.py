@@ -348,9 +348,9 @@ class MainWindow(QMainWindow):
     def _show_folders(self):
         folders = self._db.get_folders_full()
         html = self._engine.render_folders(
-            folders    = folders,
-            stats      = self._get_stats(),
-            status_msg = self._status_msg,
+            folders=folders,
+            stats=self._get_stats(),
+            status_msg=self._status_msg,
         )
         self._load_html(html, show_back=False)
 

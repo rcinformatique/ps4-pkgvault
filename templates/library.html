@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 
 {% block extra_styles %}
-
-/* ===== GRID ===== */
 .grid-scroll {
   flex: 1;
   overflow-y: auto;
@@ -14,11 +12,10 @@
   gap: 14px;
 }
 
-/* ===== PKG CARD ===== */
 .pkg-card {
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -85,9 +82,7 @@
   border: 1px solid #ddd;
 }
 
-.card-info {
-  padding: 10px 11px 11px;
-}
+.card-info { padding: 10px 11px 11px; }
 .card-title {
   font-size: 13px;
   color: var(--tp);
@@ -112,12 +107,11 @@
 .card-size   { font-size: 11px; color: var(--tm); }
 .card-region { font-size: 10px; color: var(--th); }
 
-/* ===== CONTEXT MENU ===== */
 .ctx-menu {
   position: fixed;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: var(--r-lg);
+  border-radius: 12px;
   padding: 4px;
   min-width: 200px;
   z-index: 9999;
@@ -127,7 +121,7 @@
 .ctx-menu.visible { display: block; }
 .ctx-item {
   padding: 8px 12px;
-  border-radius: var(--r-sm);
+  border-radius: 5px;
   cursor: pointer;
   font-size: 12px;
   color: var(--tp);
@@ -139,11 +133,7 @@
 .ctx-item:hover { background: var(--accent-l); color: var(--accent); }
 .ctx-item.danger { color: var(--error); }
 .ctx-item.danger:hover { background: #fff5f5; }
-.ctx-sep {
-  height: 1px;
-  background: var(--border-l);
-  margin: 3px 6px;
-}
+.ctx-sep { height: 1px; background: var(--border-l); margin: 3px 6px; }
 .ctx-title {
   padding: 6px 12px 4px;
   font-size: 11px;
@@ -156,17 +146,14 @@
 {% endblock %}
 
 {% block content %}
-
-<!-- GRID -->
 <div class="grid-scroll">
   {% if packages %}
   <div class="grid" id="pkg-grid">
     {% for pkg in packages %}
-    <div class="pkg-card {% if pkg.selected %}selected{% endif %}"
+    <div class="pkg-card"
       id="card-{{ loop.index0 }}"
-      onclick="onCardClick({{ loop.index0 }}, '{{ pkg.filepath|e }}')"
-      oncontextmenu="showCtxMenu(event, {{ loop.index0 }}, '{{ pkg.filepath|e }}', '{{ pkg.content_id|e }}', '{{ pkg.title|e }}')">
-
+      onclick="onCardClick({{ loop.index0 }})"
+      oncontextmenu="showCtxMenu(event, {{ loop.index0 }})">
       <div class="cover cover-bg-{{ pkg.type }}">
         {% if pkg.cover_path %}
           <img src="file:///{{ pkg.cover_path }}" alt="{{ pkg.title }}" />
@@ -178,10 +165,9 @@
           <span class="fw-badge">FW {{ pkg.firmware }}</span>
         {% endif %}
       </div>
-
       <div class="card-info">
-        <div class="card-title">{{ pkg.title }}</div>
-        <div class="card-cid">{{ pkg.content_id[:20] }}</div>
+        <div class="card-title">{{ pkg.title_api or pkg.title }}</div>
+        <div class="card-cid">{{ pkg.content_id[:20] if pkg.content_id else '' }}</div>
         <div class="card-bottom">
           <span class="card-size">{{ pkg.size_str }}</span>
           <span class="card-region">{{ pkg.region }}</span>
@@ -195,15 +181,15 @@
     <div class="empty-icon">📦</div>
     <div class="empty-title">Bibliothèque vide</div>
     <div class="empty-sub">
-      Cliquez sur ➕ Ajouter un dossier<br>pour scanner vos fichiers PKG
+      Cliquez sur ➕ Ajouter un dossier<br>
+      pour scanner vos fichiers PKG
     </div>
   </div>
   {% endif %}
 </div>
 
-<!-- CONTEXT MENU -->
 <div class="ctx-menu" id="ctx-menu">
-  <div class="ctx-title" id="ctx-title">Titre du jeu</div>
+  <div class="ctx-title" id="ctx-title">Titre</div>
   <div class="ctx-sep"></div>
   <div class="ctx-item" onclick="ctxAction('open_folder')">📁 Ouvrir le dossier</div>
   <div class="ctx-item" onclick="ctxAction('copy_path')">📋 Copier le chemin</div>
@@ -213,31 +199,32 @@
   <div class="ctx-sep"></div>
   <div class="ctx-item danger" onclick="ctxAction('delete')">🗑️ Supprimer</div>
 </div>
-
 {% endblock %}
 
 {% block extra_scripts %}
-var _ctxFilepath   = '';
-var _ctxContentId  = '';
+var _packages      = {{ packages | tojson }};
+var _ctxIndex      = -1;
 var _selectedIndex = -1;
 
-function onCardClick(index, filepath) {
-  // Désélectionne tout
+function onCardClick(index) {
   document.querySelectorAll('.pkg-card').forEach(function(c) {
     c.classList.remove('selected');
   });
-  // Sélectionne la carte cliquée
   var card = document.getElementById('card-' + index);
   if (card) card.classList.add('selected');
   _selectedIndex = index;
-  if (pybridge) pybridge.card_clicked(filepath);
+  _callBridge(function(b) {
+    b.card_clicked(_packages[index].filepath);
+  });
 }
 
-function showCtxMenu(e, index, filepath, cid, title) {
+function showCtxMenu(e, index) {
   e.preventDefault();
-  _ctxFilepath  = filepath;
-  _ctxContentId = cid;
-  document.getElementById('ctx-title').textContent = title;
+  e.stopPropagation();
+  _ctxIndex = index;
+  var pkg   = _packages[index];
+  document.getElementById('ctx-title').textContent =
+    pkg.title_api || pkg.title || 'Inconnu';
   var menu = document.getElementById('ctx-menu');
   menu.style.left = e.clientX + 'px';
   menu.style.top  = e.clientY + 'px';
@@ -246,15 +233,19 @@ function showCtxMenu(e, index, filepath, cid, title) {
 
 function ctxAction(action) {
   document.getElementById('ctx-menu').classList.remove('visible');
-  if (!pybridge) return;
-  if      (action === 'open_folder') pybridge.open_folder(_ctxFilepath);
-  else if (action === 'copy_path')   pybridge.copy_path(_ctxFilepath);
-  else if (action === 'copy_cid')    pybridge.copy_cid(_ctxContentId);
-  else if (action === 'rename')      pybridge.rename_file(_ctxFilepath);
-  else if (action === 'delete')      pybridge.delete_file(_ctxFilepath);
+  if (_ctxIndex < 0) return;
+  var pkg = _packages[_ctxIndex];
+  _callBridge(function(b) {
+    if      (action === 'open_folder') b.open_folder(pkg.filepath);
+    else if (action === 'copy_path')   b.copy_path(pkg.filepath);
+    else if (action === 'copy_cid')    b.copy_cid(pkg.content_id);
+    else if (action === 'rename')      b.rename_file(pkg.filepath);
+    else if (action === 'delete')      b.delete_file(pkg.filepath);
+  });
 }
 
 document.addEventListener('click', function() {
-  document.getElementById('ctx-menu').classList.remove('visible');
+  var menu = document.getElementById('ctx-menu');
+  if (menu) menu.classList.remove('visible');
 });
 {% endblock %}
