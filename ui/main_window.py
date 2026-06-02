@@ -862,6 +862,25 @@ class MainWindow(QMainWindow):
         if path not in folders:
             return
 
+        # Stoppe proprement tout thread en cours AVANT de faire quoi que ce soit
+        if self._scan_thread and self._scan_thread.isRunning():
+            self._scan_thread.stop()
+            self._scan_thread.quit()
+            self._scan_thread.wait(3000)  # timeout 3s max
+            self._scan_thread = None
+
+        if self._cover_thread and self._cover_thread.isRunning():
+            self._cover_thread.stop()
+            self._cover_thread.quit()
+            self._cover_thread.wait(3000)
+            self._cover_thread = None
+
+        if self._api_thread and self._api_thread.isRunning():
+            self._api_thread.stop()
+            self._api_thread.quit()
+            self._api_thread.wait(3000)
+            self._api_thread = None
+
         # Normalise le chemin du dossier
         path_normalized = Path(path).resolve()
 
@@ -891,8 +910,18 @@ class MainWindow(QMainWindow):
 
         if missing:
             print(f"Rescanner : {len(missing)} PKG manquants supprimés")
+            self._packages = self._db.get_all_games()
+            self._show_library()
 
-        self._start_scan([path])
+        # Lance le scan directement sans passer par _start_scan
+        # pour éviter un double arrêt de thread
+        self._status_msg = "Scan en cours…"
+        self._show_library()
+
+        self._scan_thread = ScanThread([path], self._db)
+        self._scan_thread.pkg_scanned.connect(self._on_pkg_scanned)
+        self._scan_thread.scan_done.connect(self._on_scan_done)
+        self._scan_thread.start()
 
     def on_delete_folder(self, path: str):
         reply = QMessageBox.question(
