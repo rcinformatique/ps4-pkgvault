@@ -30,6 +30,24 @@
   --r-xl:      16px;
 }
 
+[data-theme="dark"] {
+  --bg:        #0f1117;
+  --white:     #1a1d27;
+  --input:     #22263a;
+  --hover:     #1e2235;
+  --accent:    #4d9fff;
+  --accent-h:  #3a8fee;
+  --accent-l:  #1a2a4a;
+  --accent-b:  #2a4a7a;
+  --tp:        #e2e8f0;
+  --ts:        #a0aec0;
+  --tm:        #718096;
+  --th:        #4a5568;
+  --border:    #2d3748;
+  --border-l:  #1e2535;
+  --border-s:  #3a4a5c;
+}
+
 html, body {
   font-family: 'Segoe UI', Arial, sans-serif;
   font-size: 14px;
@@ -352,9 +370,31 @@ html, body {
       <input type="text" id="search-input" placeholder="Rechercher un titre, CUSA…" oninput="onSearchInput(this.value)" />
     </div>
 
+    <button id="btn-theme"
+        onclick="toggleTheme()"
+        title="Basculer thème clair/sombre"
+        style="
+        background: var(--input);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        color: var(--ts);
+        font-size: 16px;
+        width: 34px;
+        height: 34px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.15s;"
+        onmouseover="this.style.background='var(--accent-l)'; this.style.color='var(--accent)';"
+        onmouseout="this.style.background='var(--input)'; this.style.color='var(--ts)';">
+  🌙
+</button>
+
     <button id="btn-fetch-api"
             onclick="_callBridge(function(b){ b.fetch_api(); })"
-            title="Récupérer les données API RAWG"
+            title="Récupérer les données IGDB"
             style="
             background: var(--input);
             border: 1px solid var(--border);
@@ -505,6 +545,55 @@ new QWebChannel(qt.webChannelTransport, function(channel) {
 function showBackBtn(show) {
   var btn = document.getElementById('back-btn');
   if (btn) btn.style.display = show ? 'inline-flex' : 'none';
+}
+
+// ── Thème clair/sombre ───────────────────────────────────────────
+var _theme = 'light';
+
+function toggleTheme() {
+  _theme = _theme === 'light' ? 'dark' : 'light';
+  applyTheme(_theme);
+  // Sauvegarde la préférence
+  _callBridge(function(b) { b.save_theme(_theme); });
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  var btn = document.getElementById('btn-theme');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  _theme = theme;
+}
+
+// Applique le thème sauvegardé au chargement
+(function() {
+  var saved = '{{ theme }}';
+  if (saved) applyTheme(saved);
+})();
+
+function onSearchInput(text) {
+  var q = text.toLowerCase().trim();
+
+  var filtered = q === ''
+    ? _packages
+    : _packages.filter(function(p) {
+        return (p.title       || '').toLowerCase().includes(q)
+            || (p.title_api  || '').toLowerCase().includes(q)
+            || (p.content_id || '').toLowerCase().includes(q)
+            || (p.title_id   || '').toLowerCase().includes(q)
+            || (p.filename   || '').toLowerCase().includes(q);
+      });
+
+  if (typeof _filteredPackages !== 'undefined') {
+    _filteredPackages = filtered;
+    _loadedUp = 0;
+    var grid = document.getElementById('view-grid');
+    var list = document.getElementById('view-list-body');
+    if (grid) grid.innerHTML = '';
+    if (list) list.innerHTML = '';
+    if (typeof _renderNextBatch === 'function') _renderNextBatch();
+  }
+
+  _callBridge(function(b) { b.search(text); });
 }
 
 {% block extra_scripts %}{% endblock %}
