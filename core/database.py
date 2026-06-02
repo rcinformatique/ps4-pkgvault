@@ -34,63 +34,157 @@ class Database:
     def _migrate(self):
         """Crée ou met à jour les tables."""
         self._conn.executescript("""
-            CREATE TABLE IF NOT EXISTS games (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                content_id      TEXT UNIQUE NOT NULL,
-                title           TEXT,
-                title_api       TEXT,
-                type            TEXT,
-                category        TEXT,
-                app_ver         TEXT,
-                version         TEXT,
-                firmware        TEXT,
-                size_bytes      INTEGER DEFAULT 0,
-                size_str        TEXT,
-                filepath        TEXT,
-                filename        TEXT,
-                region          TEXT,
-                languages       TEXT DEFAULT '[]',
-                description     TEXT,
-                developer       TEXT,
-                publisher       TEXT,
-                release_date    TEXT,
-                genres          TEXT DEFAULT '[]',
-                rating          REAL DEFAULT 0,
-                cover_path      TEXT,
-                screenshots     TEXT DEFAULT '[]',
-                video_url       TEXT,
-                api_fetched     INTEGER DEFAULT 0,
-                date_added      TEXT,
-                last_scanned    TEXT
-            );
+                                 CREATE TABLE IF NOT EXISTS games
+                                 (
+                                     id
+                                     INTEGER
+                                     PRIMARY
+                                     KEY
+                                     AUTOINCREMENT,
+                                     content_id
+                                     TEXT
+                                     UNIQUE
+                                     NOT
+                                     NULL,
+                                     title
+                                     TEXT,
+                                     title_api
+                                     TEXT,
+                                     type
+                                     TEXT,
+                                     category
+                                     TEXT,
+                                     app_ver
+                                     TEXT,
+                                     version
+                                     TEXT,
+                                     firmware
+                                     TEXT,
+                                     size_bytes
+                                     INTEGER
+                                     DEFAULT
+                                     0,
+                                     size_str
+                                     TEXT,
+                                     filepath
+                                     TEXT,
+                                     filename
+                                     TEXT,
+                                     region
+                                     TEXT,
+                                     languages
+                                     TEXT
+                                     DEFAULT
+                                     '[]',
+                                     description
+                                     TEXT,
+                                     developer
+                                     TEXT,
+                                     publisher
+                                     TEXT,
+                                     release_date
+                                     TEXT,
+                                     genres
+                                     TEXT
+                                     DEFAULT
+                                     '[]',
+                                     rating
+                                     REAL
+                                     DEFAULT
+                                     0,
+                                     cover_path
+                                     TEXT,
+                                     screenshots
+                                     TEXT
+                                     DEFAULT
+                                     '[]',
+                                     video_url
+                                     TEXT,
+                                     api_fetched
+                                     INTEGER
+                                     DEFAULT
+                                     0,
+                                     date_added
+                                     TEXT,
+                                     last_scanned
+                                     TEXT
+                                 );
 
-            CREATE TABLE IF NOT EXISTS game_relations (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                base_content_id TEXT NOT NULL,
-                related_id      TEXT NOT NULL,
-                relation_type   TEXT NOT NULL,
-                UNIQUE(base_content_id, related_id)
-            );
+                                 CREATE TABLE IF NOT EXISTS game_relations
+                                 (
+                                     id
+                                     INTEGER
+                                     PRIMARY
+                                     KEY
+                                     AUTOINCREMENT,
+                                     base_content_id
+                                     TEXT
+                                     NOT
+                                     NULL,
+                                     related_id
+                                     TEXT
+                                     NOT
+                                     NULL,
+                                     relation_type
+                                     TEXT
+                                     NOT
+                                     NULL,
+                                     UNIQUE
+                                 (
+                                     base_content_id,
+                                     related_id
+                                 )
+                                     );
 
-            CREATE TABLE IF NOT EXISTS folders (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                path        TEXT UNIQUE NOT NULL,
-                date_added  TEXT,
-                enabled     INTEGER DEFAULT 1
-            );
+                                 CREATE TABLE IF NOT EXISTS folders
+                                 (
+                                     id
+                                     INTEGER
+                                     PRIMARY
+                                     KEY
+                                     AUTOINCREMENT,
+                                     path
+                                     TEXT
+                                     UNIQUE
+                                     NOT
+                                     NULL,
+                                     date_added
+                                     TEXT,
+                                     enabled
+                                     INTEGER
+                                     DEFAULT
+                                     1
+                                 );
 
-            CREATE TABLE IF NOT EXISTS settings (
-                key     TEXT PRIMARY KEY,
-                value   TEXT
-            );
+                                 CREATE TABLE IF NOT EXISTS settings
+                                 (
+                                     key
+                                     TEXT
+                                     PRIMARY
+                                     KEY,
+                                     value
+                                     TEXT
+                                 );
 
-            CREATE INDEX IF NOT EXISTS idx_games_content_id
-                ON games(content_id);
-            CREATE INDEX IF NOT EXISTS idx_games_type
-                ON games(type);
-            CREATE INDEX IF NOT EXISTS idx_relations_base
-                ON game_relations(base_content_id);
-        """)
+                                 CREATE INDEX IF NOT EXISTS idx_games_content_id
+                                     ON games(content_id);
+                                 CREATE INDEX IF NOT EXISTS idx_games_type
+                                     ON games(type);
+                                 CREATE INDEX IF NOT EXISTS idx_relations_base
+                                     ON game_relations(base_content_id);
+                                 """)
+
+        # Backfill date_added vide avec last_scanned ou maintenant
+        self._conn.execute("""
+                           UPDATE games
+                           SET date_added = COALESCE(
+                                   NULLIF(last_scanned, ''),
+                                   datetime('now')
+                                            )
+                           WHERE date_added IS NULL
+                              OR date_added = ''
+                           """)
+
         self._conn.commit()
 
     # ------------------------------------------------------------------ #
