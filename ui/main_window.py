@@ -248,11 +248,11 @@ class MainWindow(QMainWindow):
     def _restore_session(self):
         """Charge les données au démarrage et ne rescanne que les nouveaux fichiers."""
         self._active_filter = self._db.get_setting("active_filter", "game")
-        self._view_mode     = self._db.get_setting("view_mode", "grid")
+        self._view_mode = self._db.get_setting("view_mode", "grid")
 
         cached = self._db.get_all_games()
         if cached:
-            self._packages   = cached
+            self._packages = cached
             self._status_msg = f"{len(cached)} PKG chargés"
 
         self._show_library()
@@ -260,6 +260,10 @@ class MainWindow(QMainWindow):
         folders = self._db.get_folders()
         if folders:
             self._start_smart_scan(folders)
+        else:
+            # Pas de dossiers mais des PKG en base — lance quand même le cover loader
+            if self._packages:
+                self._start_cover_loader(self._packages)
 
     def _start_smart_scan(self, folders: list[str]):
         """Scanne uniquement les nouveaux fichiers."""
@@ -650,19 +654,68 @@ class MainWindow(QMainWindow):
     def _start_cover_loader(self, packages: list[dict]):
         if self._cover_thread and self._cover_thread.isRunning():
             self._cover_thread.stop()
-            self._cover_thread.wait()
-        self._cover_thread = CoverLoaderThread(packages)
+            self._cover_thread.quit()
+            self._cover_thread.wait(3000)
+
+        # Sépare les PKG sans cover des autres
+        without_cover = [
+            p for p in packages
+            if not p.get("cover_path")
+               or not Path(p.get("cover_path", "")).exists()
+        ]
+
+        if not without_cover:
+            return
+
+        print(f"Cover loader : {len(without_cover)} PKG sans jaquette")
+
+        self._cover_thread = CoverLoaderThread(without_cover)
         self._cover_thread.cover_ready.connect(self._on_cover_ready)
+        self._cover_thread.finished_all.connect(self._on_cover_finished)
         self._cover_thread.start()
 
+    def _on_cover_finished(self):
+        """Appelé quand toutes les covers sont chargées."""
+        print("Cover loader terminé")
+        # Rafraîchit la bibliothèque pour afficher les nouvelles covers
+        self._packages = self._db.get_all_games()
+        self._show_library()
+
     def _on_cover_ready(self, content_id: str, cover_path: str):
-        # Normalise en absolu avant de sauvegarder
+        # Normalise en absolu
         cover_abs = str(Path(cover_path).resolve())
+
+        # Sauvegarde en base
         self._db.update_cover(content_id, cover_abs)
+
+        # Met à jour en mémoire
         for pkg in self._packages:
             if pkg.get("content_id") == content_id:
                 pkg["cover_path"] = cover_abs
                 break
+
+        # Met à jour la carte dans le DOM sans recharger la page
+        cover_url = cover_abs.replace("\\", "/")
+        js = f"""
+        (function() {{
+            var cards = document.querySelectorAll('.pkg-card, .list-item');
+            cards.forEach(function(card) {{
+                var cid = card.querySelector('.card-cid, .list-title-sub');
+                if (cid && cid.textContent.includes('{content_id[:20]}')) {{
+                    var img = card.querySelector('img');
+                    var inner = card.querySelector('.cover-inner');
+                    if (img) {{
+                        img.src = 'file:///{cover_url}';
+                    }} else if (inner) {{
+                        var cover = inner.parentElement;
+                        cover.innerHTML = '<img src="file:///{cover_url}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />'
+                            + cover.innerHTML.replace(inner.outerHTML, '');
+                    }}
+                }}
+            }});
+        }})();
+        """
+        self._web.page().runJavaScript(js)
 
     # ------------------------------------------------------------------ #
     #  API Worker                                                          #
