@@ -100,6 +100,10 @@ class PyBridge(QObject):
     def navigate(self, page: str):
         self._win.navigate(page)
 
+    @pyqtSlot(str)
+    def export_library(self, format: str):
+        self._win.on_export_library(format)
+
     @pyqtSlot()
     def go_back(self):
         self._win.go_back()
@@ -544,6 +548,92 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
     #  Pages                                                               #
     # ------------------------------------------------------------------ #
+
+    def on_export_library(self, format: str):
+        from PyQt6.QtWidgets import QFileDialog
+        import csv
+
+        if format == "json":
+            default_name = "pkgvault_library.json"
+            file_filter = "JSON (*.json)"
+        else:
+            default_name = "pkgvault_library.csv"
+            file_filter = "CSV (*.csv)"
+
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Exporter la bibliothèque",
+            default_name,
+            file_filter
+        )
+        if not path:
+            return
+
+        packages = self._db.get_all_games()
+
+        if format == "json":
+            export_data = []
+            for pkg in packages:
+                export_data.append({
+                    "title": pkg.get("title_api") or pkg.get("title", ""),
+                    "title_id": pkg.get("title_id", ""),
+                    "content_id": pkg.get("content_id", ""),
+                    "type": pkg.get("type", ""),
+                    "firmware": pkg.get("firmware", ""),
+                    "region": pkg.get("region", ""),
+                    "app_ver": pkg.get("app_ver", ""),
+                    "size_str": pkg.get("size_str", ""),
+                    "size_bytes": pkg.get("size_bytes", 0),
+                    "developer": pkg.get("developer", ""),
+                    "publisher": pkg.get("publisher", ""),
+                    "release_date": pkg.get("release_date", ""),
+                    "genres": pkg.get("genres", []),
+                    "rating": pkg.get("rating", 0),
+                    "filename": pkg.get("filename", ""),
+                    "filepath": pkg.get("filepath", ""),
+                    "date_added": pkg.get("date_added", ""),
+                })
+            with open(path, "w", encoding="utf-8") as f:
+                _json.dump(export_data, f, ensure_ascii=False, indent=2)
+
+        else:  # CSV
+            fields = [
+                "title", "title_id", "content_id", "type",
+                "firmware", "region", "app_ver", "size_str",
+                "size_bytes", "developer", "publisher",
+                "release_date", "genres", "rating",
+                "filename", "filepath", "date_added",
+            ]
+            with open(path, "w", encoding="utf-8-sig", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=fields)
+                writer.writeheader()
+                for pkg in packages:
+                    writer.writerow({
+                        "title": pkg.get("title_api") or pkg.get("title", ""),
+                        "title_id": pkg.get("title_id", ""),
+                        "content_id": pkg.get("content_id", ""),
+                        "type": pkg.get("type", ""),
+                        "firmware": pkg.get("firmware", ""),
+                        "region": pkg.get("region", ""),
+                        "app_ver": pkg.get("app_ver", ""),
+                        "size_str": pkg.get("size_str", ""),
+                        "size_bytes": pkg.get("size_bytes", 0),
+                        "developer": pkg.get("developer", ""),
+                        "publisher": pkg.get("publisher", ""),
+                        "release_date": pkg.get("release_date", ""),
+                        "genres": ", ".join(pkg.get("genres", [])),
+                        "rating": pkg.get("rating", 0),
+                        "filename": pkg.get("filename", ""),
+                        "filepath": pkg.get("filepath", ""),
+                        "date_added": (pkg.get("date_added") or "")[:10],
+                    })
+
+        count = len(packages)
+        QMessageBox.information(
+            self,
+            "Export terminé",
+            f"✅ {count} jeux exportés\n{path}"
+        )
 
     def _show_library(self):
         pkgs           = self._get_filtered_packages()

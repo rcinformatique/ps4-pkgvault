@@ -415,6 +415,75 @@ html, body {
       🔄 Données API
     </button>
 
+    <button id="btn-export"
+        onclick="showExportMenu()"
+        title="Exporter la bibliothèque"
+        style="
+        background: var(--input);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        color: var(--ts);
+        font-size: 12px;
+        padding: 6px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        flex-shrink: 0;
+        transition: all 0.15s;"
+        onmouseover="this.style.background='var(--accent-l)'; this.style.color='var(--accent)'; this.style.borderColor='var(--accent-b)';"
+        onmouseout="this.style.background='var(--input)'; this.style.color='var(--ts)'; this.style.borderColor='var(--border)';">
+  📤 Exporter
+</button>
+
+<!-- Menu export -->
+<div id="export-menu" style="
+  display: none;
+  position: fixed;
+  top: 56px;
+  right: 160px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 4px;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  min-width: 160px;
+">
+  <div onclick="doExport('json')" style="
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--tp);
+    cursor: pointer;
+    border-radius: var(--r-sm);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.1s;
+  " onmouseover="this.style.background='var(--accent-l)'; this.style.color='var(--accent)';"
+     onmouseout="this.style.background=''; this.style.color='var(--tp)';">
+    📋 Exporter en JSON
+  </div>
+  <div onclick="doExport('csv')" style="
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--tp);
+    cursor: pointer;
+    border-radius: var(--r-sm);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.1s;
+  " onmouseover="this.style.background='var(--accent-l)'; this.style.color='var(--accent)';"
+     onmouseout="this.style.background=''; this.style.color='var(--tp)';">
+    📊 Exporter en CSV
+  </div>
+</div>
+
     <button class="btn-add"
       onclick="_callBridge(function(b){ b.add_folder(); })">
       ➕ Ajouter un dossier
@@ -595,6 +664,25 @@ function onSearchInput(text) {
 
   _callBridge(function(b) { b.search(text); });
 }
+
+function showExportMenu() {
+  var menu = document.getElementById('export-menu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function doExport(format) {
+  document.getElementById('export-menu').style.display = 'none';
+  _callBridge(function(b) { b.export_library(format); });
+}
+
+// Ferme le menu export si clic ailleurs
+document.addEventListener('click', function(e) {
+  var menu = document.getElementById('export-menu');
+  var btn  = document.getElementById('btn-export');
+  if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
+    menu.style.display = 'none';
+  }
+});
 
 {% block extra_scripts %}{% endblock %}
 </script>
