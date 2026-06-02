@@ -54,12 +54,25 @@ def save_screenshot(
 def extract_icon0(pkg_path: str | Path) -> bytes | None:
     """
     Extrait icon0.png depuis le fichier PKG.
-    Lit uniquement les premiers Mo pour trouver le PNG.
     """
     try:
-        path = Path(pkg_path)
+        path      = Path(pkg_path)
+        file_size = path.stat().st_size
+
+        # Petits fichiers < 50 Mo → lecture complète
+        if file_size <= 50 * 1024 * 1024:
+            with open(path, "rb") as f:
+                data = f.read()
+            idx = data.find(b"\x89PNG\r\n\x1a\n")
+            if idx == -1:
+                return None
+            end = data.find(b"IEND", idx)
+            if end == -1:
+                return None
+            return data[idx:end + 8]
+
+        # Gros fichiers → lecture par chunks
         with open(path, "rb") as f:
-            # Lit par chunks jusqu'à trouver le PNG
             chunk_size = 1024 * 1024  # 1 Mo
             buffer     = b""
             for _ in range(20):  # max 20 Mo
@@ -69,17 +82,17 @@ def extract_icon0(pkg_path: str | Path) -> bytes | None:
                 buffer += chunk
                 idx = buffer.find(b"\x89PNG\r\n\x1a\n")
                 if idx != -1:
-                    # Trouve la fin du PNG
                     end = buffer.find(b"IEND", idx)
                     if end != -1:
                         return buffer[idx:end + 8]
-                    # Lit encore pour avoir la fin
-                    extra = f.read(chunk_size)
+                    # PNG trouvé mais IEND pas encore — lit plus
+                    extra = f.read(chunk_size * 2)
                     buffer += extra
                     end = buffer.find(b"IEND", idx)
                     if end != -1:
                         return buffer[idx:end + 8]
                     break
+
     except OSError:
         pass
     return None
