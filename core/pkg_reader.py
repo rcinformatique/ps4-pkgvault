@@ -231,13 +231,13 @@ def _detect_backport_from_sfo(
     Un backport a un sdk_ver inférieur au system_ver.
     Ex: system_ver=6.80, sdk_ver=5.05 → backport
     """
-    if category not in ("gp", "gd"):
+    # Toutes les catégories de jeux complets sont concernées
+    if category not in ("gd", "gda", "gdo", "gdc", "gp", "bd"):
         return False
 
     if not pubtoolinfo:
         return False
 
-    import re
     match = re.search(r"sdk_ver=([0-9A-Fa-f]+)", pubtoolinfo)
     if not match:
         return False
@@ -247,15 +247,12 @@ def _detect_backport_from_sfo(
     except ValueError:
         return False
 
-    # sdk_ver et system_ver ont le même format 0xMMmmxxxx
-    # Si le SDK est significativement inférieur au firmware → backport
     sdk_major    = (sdk_int    >> 24) & 0xFF
     system_major = (system_ver >> 24) & 0xFF if isinstance(system_ver, int) else 0
 
     if system_major == 0:
         return False
 
-    # Backport si SDK au moins 1 version majeure en dessous
     return sdk_major < system_major
 
 
