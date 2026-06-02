@@ -19,7 +19,6 @@ DEFAULT_STATS = {
 }
 
 DEFAULT_SETTINGS = {
-    "rawg_api_key":       "",
     "igdb_client_id":     "",
     "igdb_client_secret": "",
     "auto_fetch":         "1",
@@ -33,7 +32,6 @@ def _normalize_pkg(pkg: dict) -> dict:
     pkg_type = pkg.get("type", "game")
     info     = TYPE_INFO.get(pkg_type, TYPE_INFO["game"])
 
-    # Chemin absolu avec slashes forward pour les URLs HTML
     raw_cover = pkg.get("cover_path") or ""
     if raw_cover:
         cover = Path(raw_cover).resolve().as_posix()
@@ -64,6 +62,7 @@ def _base_context(
     active_sort: str = "title",
     count_str: str = "0 fichiers",
     view_mode: str = "grid",
+    theme: str = "light",
 ) -> dict:
     s = stats or DEFAULT_STATS
     return {
@@ -73,6 +72,7 @@ def _base_context(
         "count_str":     count_str,
         "status_msg":    status_msg,
         "view_mode":     view_mode,
+        "theme":         theme,
         "stats": {
             "game":       s.get("game",       0),
             "dlc":        s.get("dlc",        0),
@@ -110,6 +110,7 @@ class TemplateEngine:
         count_str: str = "",
         view_mode: str = "grid",
         card_min_width: int = 180,
+        theme: str = "light",
     ) -> str:
         s = stats or DEFAULT_STATS
         if not count_str:
@@ -119,7 +120,7 @@ class TemplateEngine:
         ctx = _base_context(
             "library", stats, status_msg,
             active_filter, active_sort, count_str,
-            view_mode
+            view_mode, theme
         )
         ctx.update({
             "packages":       [_normalize_pkg(p) for p in packages],
@@ -131,27 +132,27 @@ class TemplateEngine:
         return self._render("library.html", ctx)
 
     def render_activity(
-            self,
-            stats: dict = None,
-            status_msg: str = "Prêt",
+        self,
+        stats: dict = None,
+        status_msg: str = "Prêt",
+        theme: str = "light",
     ) -> str:
-        import json as _json
         from core.activity_log import activity, EVENT_SCAN, EVENT_API, EVENT_ERROR
 
         events = activity.get_events(limit=300)
         counts = activity.get_counts()
 
         counts_mapped = {
-            "scan": counts.get(EVENT_SCAN, 0),
-            "api": counts.get(EVENT_API, 0),
+            "scan":  counts.get(EVENT_SCAN,  0),
+            "api":   counts.get(EVENT_API,   0),
             "error": counts.get(EVENT_ERROR, 0),
         }
 
-        ctx = _base_context("activity", stats, status_msg)
+        ctx = _base_context("activity", stats, status_msg, theme=theme)
         ctx.update({
-            "total": len(events),
-            "count_scan": counts_mapped["scan"],
-            "count_api": counts_mapped["api"],
+            "total":       len(events),
+            "count_scan":  counts_mapped["scan"],
+            "count_api":   counts_mapped["api"],
             "count_error": counts_mapped["error"],
             "events_json": _json.dumps(events, ensure_ascii=False),
             "counts_json": _json.dumps(counts_mapped, ensure_ascii=False),
@@ -164,8 +165,9 @@ class TemplateEngine:
         related: list[dict] = None,
         stats: dict = None,
         status_msg: str = "Prêt",
+        theme: str = "light",
     ) -> str:
-        ctx = _base_context("detail", stats, status_msg)
+        ctx = _base_context("detail", stats, status_msg, theme=theme)
         ctx.update({
             "pkg":     _normalize_pkg(pkg_data),
             "related": [_normalize_pkg(r) for r in (related or [])],
@@ -177,8 +179,9 @@ class TemplateEngine:
         folders: list[dict],
         stats: dict = None,
         status_msg: str = "Prêt",
+        theme: str = "light",
     ) -> str:
-        ctx = _base_context("folders", stats, status_msg)
+        ctx = _base_context("folders", stats, status_msg, theme=theme)
         ctx["folders"] = folders or []
         return self._render("folders.html", ctx)
 
@@ -187,8 +190,9 @@ class TemplateEngine:
         settings: dict = None,
         stats: dict = None,
         status_msg: str = "Prêt",
+        theme: str = "light",
     ) -> str:
-        ctx = _base_context("settings", stats, status_msg)
+        ctx = _base_context("settings", stats, status_msg, theme=theme)
         ctx["settings"] = {**DEFAULT_SETTINGS, **(settings or {})}
         return self._render("settings.html", ctx)
 
@@ -196,6 +200,7 @@ class TemplateEngine:
         self,
         stats: dict = None,
         status_msg: str = "Prêt",
+        theme: str = "light",
     ) -> str:
-        ctx = _base_context("credits", stats, status_msg)
+        ctx = _base_context("credits", stats, status_msg, theme=theme)
         return self._render("credits.html", ctx)

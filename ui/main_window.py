@@ -9,13 +9,14 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
-from PyQt6.QtCore import QSize, QObject, pyqtSlot, QUrl, QThread, pyqtSignal
+from PyQt6.QtCore import QSize, QObject, pyqtSlot, QUrl, QThread, pyqtSignal, QTimer
 from ui.template_engine import TemplateEngine
 from core.database import Database
 from core.scanner import scan_folder
 from core.cover_loader import CoverLoaderThread
 from core.api_client import ApiWorkerThread
 from core.activity_log import activity, EVENT_SCAN, EVENT_API, EVENT_ERROR
+
 
 # ------------------------------------------------------------------ #
 #  Thread de scan complet                                              #
@@ -24,7 +25,7 @@ from core.activity_log import activity, EVENT_SCAN, EVENT_API, EVENT_ERROR
 class ScanThread(QThread):
     scan_done   = pyqtSignal(list, list)
     progress    = pyqtSignal(int, int)
-    pkg_scanned = pyqtSignal(dict)  # ← nouveau
+    pkg_scanned = pyqtSignal(dict)
 
     def __init__(self, folders: list[str], db: Database, parent=None):
         super().__init__(parent)
@@ -40,7 +41,7 @@ class ScanThread(QThread):
                 folder,
                 db=self._db,
                 progress_callback=lambda c, t: self.progress.emit(c, t),
-                pkg_callback=lambda p: self.pkg_scanned.emit(p),  # ← nouveau
+                pkg_callback=lambda p: self.pkg_scanned.emit(p),
             )
             all_packages.extend(pkgs)
             all_errors.extend(errors)
@@ -55,8 +56,8 @@ class ScanThread(QThread):
 # ------------------------------------------------------------------ #
 
 class ScanFilesThread(QThread):
-    scan_done    = pyqtSignal(list, list)
-    pkg_scanned  = pyqtSignal(dict)  # ← nouveau signal par PKG
+    scan_done   = pyqtSignal(list, list)
+    pkg_scanned = pyqtSignal(dict)
 
     def __init__(self, filepaths: list[str], db: Database, parent=None):
         super().__init__(parent)
@@ -67,7 +68,7 @@ class ScanFilesThread(QThread):
     def run(self):
         from core.pkg_reader import read_pkg
         packages = []
-        errors = []
+        errors   = []
         for filepath in self._filepaths:
             if not self._running:
                 break
@@ -155,6 +156,10 @@ class PyBridge(QObject):
         self._win.on_delete_folder(path)
 
     @pyqtSlot(str)
+    def save_theme(self, theme: str):
+        self._win.on_save_theme(theme)
+
+    @pyqtSlot(str)
     def save_settings(self, json_str: str):
         self._win.on_save_settings(json_str)
 
@@ -212,6 +217,7 @@ class MainWindow(QMainWindow):
         self._search_text   = ""
         self._status_msg    = "Prêt"
         self._view_mode     = "grid"
+        self._current_theme = "light"
         self._scan_thread   = None
         self._cover_thread  = None
         self._api_thread    = None
@@ -235,15 +241,14 @@ class MainWindow(QMainWindow):
 
         self._web = QWebEngineView()
 
-        # Autorise les médias et iframes YouTube
-        settings = self._web.settings()
         from PyQt6.QtWebEngineCore import QWebEngineSettings
+        settings = self._web.settings()
         settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
         settings.setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True)
 
-        self._bridge = PyBridge(self)
+        self._bridge  = PyBridge(self)
         self._channel = QWebChannel()
         self._channel.registerObject("pybridge", self._bridge)
         self._web.page().setWebChannel(self._channel)
@@ -255,13 +260,13 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _restore_session(self):
-        """Charge les données au démarrage et ne rescanne que les nouveaux fichiers."""
         self._active_filter = self._db.get_setting("active_filter", "game")
-        self._view_mode = self._db.get_setting("view_mode", "grid")
+        self._view_mode     = self._db.get_setting("view_mode", "grid")
+        self._current_theme = self._db.get_setting("theme", "light")
 
         cached = self._db.get_all_games()
         if cached:
-            self._packages = cached
+            self._packages   = cached
             self._status_msg = f"{len(cached)} PKG chargés"
 
         self._show_library()
@@ -270,13 +275,10 @@ class MainWindow(QMainWindow):
         if folders:
             self._start_smart_scan(folders)
         else:
-            # Pas de dossiers mais des PKG en base — lance quand même le cover loader
             if self._packages:
                 self._start_cover_loader(self._packages)
 
     def _start_smart_scan(self, folders: list[str]):
-        """Scanne uniquement les nouveaux fichiers."""
-
         known_paths = set(
             os.path.normcase(os.path.abspath(p.get("filepath", "")))
             for p in self._packages
@@ -293,7 +295,7 @@ class MainWindow(QMainWindow):
                     )
 
         new_files = [f for f in disk_files if f not in known_paths]
-        missing = [p for p in known_paths if p and not Path(p).exists()]
+        missing   = [p for p in known_paths if p and not Path(p).exists()]
 
         print(f"Smart scan : {len(new_files)} nouveaux, {len(missing)} manquants")
 
@@ -325,19 +327,14 @@ class MainWindow(QMainWindow):
             self._scan_thread.wait()
 
         self._scan_thread = ScanFilesThread(filepaths, self._db)
-        self._scan_thread.pkg_scanned.connect(self._on_pkg_scanned)  # ← nouveau
+        self._scan_thread.pkg_scanned.connect(self._on_pkg_scanned)
         self._scan_thread.scan_done.connect(self._on_scan_done)
         self._scan_thread.start()
 
     def _on_pkg_scanned(self, pkg_data: dict):
-        """
-        Appelé pour chaque PKG scanné — ajoute la carte
-        directement dans le DOM sans recharger la page.
-        """
         import json as _json
         from ui.template_engine import TYPE_INFO
 
-        # Ne logue que si vraiment nouveau (pas déjà en mémoire)
         filepath_resolved = str(Path(pkg_data.get("filepath", "")).resolve())
         already_known = any(
             str(Path(p.get("filepath", "")).resolve()) == filepath_resolved
@@ -346,7 +343,6 @@ class MainWindow(QMainWindow):
         if not already_known:
             activity.log_scan(pkg_data)
 
-        # Ajoute au tableau en mémoire si pas déjà présent
         exists = any(
             str(Path(p.get("filepath", "")).resolve()) == filepath_resolved
             for p in self._packages
@@ -354,51 +350,42 @@ class MainWindow(QMainWindow):
         if not exists:
             self._packages.append(pkg_data)
 
-        # Prépare les données pour le template
-        pkg_type = pkg_data.get("type", "game")
-        info = TYPE_INFO.get(pkg_type, TYPE_INFO["game"])
-        cover = (pkg_data.get("cover_path") or "").replace("\\", "/")
+        pkg_type   = pkg_data.get("type", "game")
+        info       = TYPE_INFO.get(pkg_type, TYPE_INFO["game"])
+        cover      = (pkg_data.get("cover_path") or "").replace("\\", "/")
 
         normalized = {
             **pkg_data,
-            "type_label": info["label"],
-            "type_icon": info["icon"],
-            "cover_path": cover,
+            "type_label":  info["label"],
+            "type_icon":   info["icon"],
+            "cover_path":  cover,
             "screenshots": [],
         }
 
-        # Sérialise pour injection JS
-        pkg_json = _json.dumps(normalized, ensure_ascii=False)
-        index = len(self._packages) - 1
-        firmware = pkg_data.get("firmware", "")
-        fw_badge = f'<span class="fw-badge">FW {firmware}</span>' if firmware else ""
+        pkg_json  = _json.dumps(normalized, ensure_ascii=False)
+        index     = len(self._packages) - 1
+        firmware  = pkg_data.get("firmware", "")
+        fw_badge  = f'<span class="fw-badge">FW {firmware}</span>' if firmware else ""
         cover_html = (
             f'<img src="file:///{cover}" alt="{pkg_data.get("title", "")}" />'
             if cover else
             f'<div class="cover-inner">{info["icon"]}</div>'
         )
 
-        # Échappe les caractères dangereux pour l'injection JS
-        title = (pkg_data.get("title_api") or pkg_data.get("title") or "")
-        title = title.replace("\\", "\\\\").replace("`", "\\`").replace("'", "\\'")
-        cid = (pkg_data.get("content_id") or "")[:20]
+        title    = (pkg_data.get("title_api") or pkg_data.get("title") or "")
+        title    = title.replace("\\", "\\\\").replace("`", "\\`").replace("'", "\\'")
+        cid      = (pkg_data.get("content_id") or "")[:20]
         size_str = pkg_data.get("size_str", "")
-        region = pkg_data.get("region", "")
+        region   = pkg_data.get("region", "")
 
         js = f"""
         (function() {{
-            // Met à jour le tableau JS
             if (typeof _packages !== 'undefined') {{
                 _packages.push({pkg_json});
             }}
-
             var grid  = document.getElementById('view-grid');
             var empty = document.querySelector('.empty-state');
-
-            // Cache l'état vide
             if (empty) empty.style.display = 'none';
-
-            // Ajoute dans la grille
             if (grid) {{
                 grid.style.display = 'grid';
                 var card = document.createElement('div');
@@ -424,8 +411,6 @@ class MainWindow(QMainWindow):
                 grid.appendChild(card);
                 card.scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
             }}
-
-            // Met à jour le statusbar
             var msg = document.getElementById('sb-msg');
             if (msg) {{
                 var count = typeof _packages !== 'undefined' ? _packages.length : '';
@@ -433,7 +418,6 @@ class MainWindow(QMainWindow):
             }}
         }})();
         """
-
         self._web.page().runJavaScript(js)
 
     # ------------------------------------------------------------------ #
@@ -455,22 +439,10 @@ class MainWindow(QMainWindow):
         elif page == "activity":
             self._show_activity()
 
-    def _show_activity(self):
-        html = self._engine.render_activity(
-            stats=self._get_stats(),
-            status_msg=self._status_msg,
-        )
-        self._load_html(html, show_back=False)
-
-    def on_clear_activity(self):
-        activity.clear()
-        self._show_activity()
-
     def go_back(self):
         self.navigate(self._previous_page)
 
     def _load_html(self, html: str, show_back: bool = False):
-        # Plus besoin d'injecter le webchannel — base.html le gère
         self._web.setHtml(html, QUrl("file:///"))
         if show_back:
             try:
@@ -487,9 +459,18 @@ class MainWindow(QMainWindow):
         self._web.page().runJavaScript("showBackBtn(true);")
 
     def _inject_webchannel(self, html: str) -> str:
-        # Garde pour compatibilité mais ne fait plus rien
-        # base.html contient déjà le script WebChannel
         return html
+
+    # ------------------------------------------------------------------ #
+    #  Thème                                                               #
+    # ------------------------------------------------------------------ #
+
+    def on_save_theme(self, theme: str):
+        self._db.set_setting("theme", theme)
+        self._current_theme = theme
+
+    def _get_theme(self) -> str:
+        return self._current_theme or "light"
 
     # ------------------------------------------------------------------ #
     #  Stats                                                               #
@@ -528,11 +509,11 @@ class MainWindow(QMainWindow):
             q = self._search_text.lower()
             pkgs = [
                 p for p in pkgs
-                if q in (p.get("title") or "").lower()
-                   or q in (p.get("title_api") or "").lower()
-                   or q in (p.get("content_id") or "").lower()
-                   or q in (p.get("title_id") or "").lower()
-                   or q in (p.get("filename") or "").lower()
+                if q in (p.get("title")      or "").lower()
+                or q in (p.get("title_api")  or "").lower()
+                or q in (p.get("content_id") or "").lower()
+                or q in (p.get("title_id")   or "").lower()
+                or q in (p.get("filename")   or "").lower()
             ]
 
         def sort_key(p):
@@ -544,9 +525,9 @@ class MainWindow(QMainWindow):
                 return p.get("type", "")
             if self._active_sort == "date":
                 return (
-                        p.get("date_added")
-                        or p.get("last_scanned")
-                        or p.get("filepath", "")
+                    p.get("date_added")
+                    or p.get("last_scanned")
+                    or p.get("filepath", "")
                 )
             return ""
 
@@ -580,6 +561,7 @@ class MainWindow(QMainWindow):
             count_str      = count_str,
             view_mode      = self._view_mode,
             card_min_width = card_min_width,
+            theme          = self._get_theme(),
         )
         self._load_html(html, show_back=False)
 
@@ -589,6 +571,7 @@ class MainWindow(QMainWindow):
             folders    = folders,
             stats      = self._get_stats(),
             status_msg = self._status_msg,
+            theme      = self._get_theme(),
         )
         self._load_html(html, show_back=False)
 
@@ -598,6 +581,7 @@ class MainWindow(QMainWindow):
             settings   = settings,
             stats      = self._get_stats(),
             status_msg = self._status_msg,
+            theme      = self._get_theme(),
         )
         self._load_html(html, show_back=False)
 
@@ -605,6 +589,15 @@ class MainWindow(QMainWindow):
         html = self._engine.render_credits(
             stats      = self._get_stats(),
             status_msg = self._status_msg,
+            theme      = self._get_theme(),
+        )
+        self._load_html(html, show_back=False)
+
+    def _show_activity(self):
+        html = self._engine.render_activity(
+            stats      = self._get_stats(),
+            status_msg = self._status_msg,
+            theme      = self._get_theme(),
         )
         self._load_html(html, show_back=False)
 
@@ -622,6 +615,7 @@ class MainWindow(QMainWindow):
             related    = related,
             stats      = self._get_stats(),
             status_msg = self._status_msg,
+            theme      = self._get_theme(),
         )
         self._load_html(html, show_back=True)
 
@@ -638,12 +632,11 @@ class MainWindow(QMainWindow):
         self._show_library()
 
         self._scan_thread = ScanThread(folders, self._db)
-        self._scan_thread.pkg_scanned.connect(self._on_pkg_scanned)  # ← nouveau
+        self._scan_thread.pkg_scanned.connect(self._on_pkg_scanned)
         self._scan_thread.scan_done.connect(self._on_scan_done)
         self._scan_thread.start()
 
     def _on_scan_done(self, packages: list, errors: list):
-
         for filepath in errors:
             activity.log_error(filepath, "Magic inconnu ou SFO introuvable")
 
@@ -669,7 +662,7 @@ class MainWindow(QMainWindow):
         without_cover = [
             p for p in packages
             if not p.get("cover_path")
-               or not Path(p.get("cover_path", "")).exists()
+            or not Path(p.get("cover_path", "")).exists()
         ]
 
         if not without_cover:
@@ -684,26 +677,19 @@ class MainWindow(QMainWindow):
         self._cover_thread.start()
 
     def _on_cover_finished(self):
-        """Appelé quand toutes les covers sont chargées."""
         print("Cover loader terminé")
-        # Rafraîchit la bibliothèque pour afficher les nouvelles covers
         self._packages = self._db.get_all_games()
         self._show_library()
 
     def _on_cover_ready(self, content_id: str, cover_path: str):
-        # Normalise en absolu
         cover_abs = str(Path(cover_path).resolve())
-
-        # Sauvegarde en base
         self._db.update_cover(content_id, cover_abs)
 
-        # Met à jour en mémoire
         for pkg in self._packages:
             if pkg.get("content_id") == content_id:
                 pkg["cover_path"] = cover_abs
                 break
 
-        # Met à jour la carte dans le DOM sans recharger la page
         cover_url = cover_abs.replace("\\", "/")
         js = f"""
         (function() {{
@@ -711,13 +697,14 @@ class MainWindow(QMainWindow):
             cards.forEach(function(card) {{
                 var cid = card.querySelector('.card-cid, .list-title-sub');
                 if (cid && cid.textContent.includes('{content_id[:20]}')) {{
-                    var img = card.querySelector('img');
+                    var img   = card.querySelector('img');
                     var inner = card.querySelector('.cover-inner');
                     if (img) {{
                         img.src = 'file:///{cover_url}';
                     }} else if (inner) {{
                         var cover = inner.parentElement;
-                        cover.innerHTML = '<img src="file:///{cover_url}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />'
+                        cover.innerHTML =
+                            '<img src="file:///{cover_url}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />'
                             + cover.innerHTML.replace(inner.outerHTML, '');
                     }}
                 }}
@@ -732,8 +719,8 @@ class MainWindow(QMainWindow):
 
     def _start_api_worker(self):
         igdb_client_id = self._db.get_setting("igdb_client_id", "")
-        igdb_secret = self._db.get_setting("igdb_client_secret", "")
-        auto_fetch = self._db.get_setting("auto_fetch", "1")
+        igdb_secret    = self._db.get_setting("igdb_client_secret", "")
+        auto_fetch     = self._db.get_setting("auto_fetch", "1")
 
         if auto_fetch != "1" or not igdb_client_id or not igdb_secret:
             return
@@ -746,7 +733,7 @@ class MainWindow(QMainWindow):
 
     def _start_api_worker_manual(self, games: list[dict]):
         igdb_client_id = self._db.get_setting("igdb_client_id", "")
-        igdb_secret = self._db.get_setting("igdb_client_secret", "")
+        igdb_secret    = self._db.get_setting("igdb_client_secret", "")
 
         if not igdb_client_id or not igdb_secret:
             return
@@ -756,9 +743,9 @@ class MainWindow(QMainWindow):
             self._api_thread.wait()
 
         self._api_thread = ApiWorkerThread(
-            games=games,
-            igdb_client_id=igdb_client_id,
-            igdb_client_secret=igdb_secret,
+            games              = games,
+            igdb_client_id     = igdb_client_id,
+            igdb_client_secret = igdb_secret,
         )
         self._api_thread.game_updated.connect(self._on_game_updated)
         self._api_thread.cover_ready.connect(self._on_cover_ready)
@@ -768,37 +755,34 @@ class MainWindow(QMainWindow):
         self._api_thread.start()
 
     def _on_game_updated(self, content_id: str, api_data: dict):
-
-        title = api_data.get("title_api", "") or content_id
-        source = "RAWG" if api_data.get("rating") is not None else "IGDB"
+        title  = api_data.get("title_api", "") or content_id
+        source = "IGDB"
         activity.log_api(title, source=source, content_id=content_id)
 
         self._db.update_api_data(content_id, api_data)
         for pkg in self._packages:
             if pkg.get("content_id") == content_id:
                 pkg.update({
-                    "title_api":    api_data.get("title_api", ""),
-                    "description":  api_data.get("description", ""),
-                    "developer":    api_data.get("developer", ""),
-                    "publisher":    api_data.get("publisher", ""),
+                    "title_api":    api_data.get("title_api",    ""),
+                    "description":  api_data.get("description",  ""),
+                    "developer":    api_data.get("developer",    ""),
+                    "publisher":    api_data.get("publisher",    ""),
                     "release_date": api_data.get("release_date", ""),
-                    "genres":       api_data.get("genres", []),
-                    "rating":       api_data.get("rating", 0),
-                    "screenshots":  api_data.get("screenshots", []),
+                    "genres":       api_data.get("genres",       []),
+                    "rating":       api_data.get("rating",        0),
+                    "screenshots":  api_data.get("screenshots",  []),
                 })
                 break
 
     def _on_api_progress(self, current: int, total: int):
-        """Met à jour la progression dans la statusbar via JS."""
         self._web.page().runJavaScript(f"""
             var el  = document.getElementById('sb-progress');
             var txt = document.getElementById('sb-progress-text');
             if (el)  el.style.display = 'inline';
-            if (txt) txt.textContent  = 'API {current}/{total}';
+            if (txt) txt.textContent  = 'IGDB {current}/{total}';
         """)
 
     def _on_api_status(self, msg: str):
-        """Met à jour le message de statut via JS."""
         safe_msg = msg[:50].replace("'", "\\'").replace("\n", " ")
         self._web.page().runJavaScript(f"""
             var txt = document.getElementById('sb-progress-text');
@@ -806,12 +790,11 @@ class MainWindow(QMainWindow):
         """)
 
     def _on_api_finished(self):
-        """Cache la progression et rafraîchit."""
         self._web.page().runJavaScript("""
             var el = document.getElementById('sb-progress');
             if (el) el.style.display = 'none';
         """)
-        self._status_msg = "✅ Données API récupérées"
+        self._status_msg = "✅ Données IGDB récupérées"
         self._packages   = self._db.get_all_games()
         self._show_library()
 
@@ -832,7 +815,6 @@ class MainWindow(QMainWindow):
 
     def on_search(self, text: str):
         self._search_text = text
-        # self._show_library()
 
     def on_filter(self, key: str):
         self._active_filter = key
@@ -850,7 +832,7 @@ class MainWindow(QMainWindow):
 
     def on_fetch_api(self):
         igdb_client_id = self._db.get_setting("igdb_client_id", "")
-        igdb_secret = self._db.get_setting("igdb_client_secret", "")
+        igdb_secret    = self._db.get_setting("igdb_client_secret", "")
 
         if not igdb_client_id or not igdb_secret:
             QMessageBox.warning(
@@ -875,7 +857,7 @@ class MainWindow(QMainWindow):
 
     def on_refetch_api(self, content_id: str):
         igdb_client_id = self._db.get_setting("igdb_client_id", "")
-        igdb_secret = self._db.get_setting("igdb_client_secret", "")
+        igdb_secret    = self._db.get_setting("igdb_client_secret", "")
 
         if not igdb_client_id or not igdb_secret:
             QMessageBox.warning(
@@ -885,7 +867,6 @@ class MainWindow(QMainWindow):
             )
             return
 
-        # Remet api_fetched à 0
         self._db._conn.execute(
             "UPDATE games SET api_fetched = 0 WHERE content_id = ?",
             (content_id,)
@@ -922,14 +903,9 @@ class MainWindow(QMainWindow):
         folders = self._db.get_folders()
         if path not in folders:
             return
-        # Délai pour laisser le WebChannel terminer son callback JS
-        from PyQt6.QtCore import QTimer
         QTimer.singleShot(100, lambda: self._do_rescan_folder(path))
 
     def _do_rescan_folder(self, path: str):
-        """Logique de rescan — appelée après délai WebChannel."""
-
-        # Stoppe les threads en cours
         for thread in [self._scan_thread, self._cover_thread, self._api_thread]:
             if thread and thread.isRunning():
                 if hasattr(thread, "stop"):
@@ -937,32 +913,28 @@ class MainWindow(QMainWindow):
                 thread.quit()
                 thread.wait(3000)
 
-        self._scan_thread = None
+        self._scan_thread  = None
         self._cover_thread = None
-        self._api_thread = None
+        self._api_thread   = None
 
         try:
-            path_norm = os.path.normcase(os.path.abspath(path))
-
+            path_norm  = os.path.normcase(os.path.abspath(path))
             disk_files = set(
                 os.path.normcase(os.path.abspath(str(f)))
                 for f in Path(path).rglob("*.pkg")
             )
-
             folder_pkgs = [
                 p for p in self._packages
                 if os.path.normcase(os.path.abspath(
                     p.get("filepath", "")
                 )).startswith(path_norm)
             ]
-
             missing = [
                 p for p in folder_pkgs
                 if os.path.normcase(os.path.abspath(
                     p.get("filepath", "")
                 )) not in disk_files
             ]
-
             for pkg in missing:
                 filepath = pkg.get("filepath", "")
                 self._db.delete_by_filepath(filepath)
@@ -970,11 +942,9 @@ class MainWindow(QMainWindow):
                     p for p in self._packages
                     if p.get("filepath") != filepath
                 ]
-
             if missing:
                 print(f"Rescanner : {len(missing)} PKG manquants supprimés")
                 self._packages = self._db.get_all_games()
-
         except Exception as e:
             print(f"_do_rescan_folder erreur : {e}")
 
@@ -1065,6 +1035,10 @@ class MainWindow(QMainWindow):
         except json.JSONDecodeError:
             pass
 
+    def on_save_theme(self, theme: str):
+        self._db.set_setting("theme", theme)
+        self._current_theme = theme
+
     def on_test_igdb(self, client_id: str, client_secret: str):
         if not client_id or not client_secret:
             QMessageBox.warning(self, "IGDB", "Remplis le Client ID et le Client Secret.")
@@ -1091,26 +1065,21 @@ class MainWindow(QMainWindow):
         from core.cover_loader import COVERS_DIR, SCREENSHOTS_DIR
         import shutil
 
-        # Supprime les dossiers cache
         for d in [COVERS_DIR, SCREENSHOTS_DIR]:
             if d.exists():
                 shutil.rmtree(d)
                 d.mkdir(parents=True)
 
-        # Remet cover_path et screenshots à vide en base
         self._db._conn.execute("UPDATE games SET cover_path = ''")
         self._db._conn.execute("UPDATE games SET screenshots = '[]'")
         self._db._conn.commit()
 
-        # Met à jour en mémoire
         for pkg in self._packages:
             pkg["cover_path"] = ""
             pkg["screenshots"] = []
 
         self._status_msg = "Cache vidé"
         self._show_settings()
-
-        # Relance le cover loader pour tout réextraire
         self._start_cover_loader(self._packages)
 
     def on_reset_db(self):
@@ -1129,14 +1098,15 @@ class MainWindow(QMainWindow):
         if DB_PATH.exists():
             DB_PATH.unlink()
 
-        self._db = Database()
-        self._packages = []
+        self._db         = Database()
+        self._packages   = []
         self._status_msg = "Base de données réinitialisée"
-
-        # Réinitialise aussi le journal d'activité
         activity.reset()
-
         self._show_library()
+
+    def on_clear_activity(self):
+        activity.clear()
+        self._show_activity()
 
     # ------------------------------------------------------------------ #
     #  Fermeture                                                           #
