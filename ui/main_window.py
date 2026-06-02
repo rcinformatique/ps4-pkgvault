@@ -158,9 +158,9 @@ class PyBridge(QObject):
     def save_settings(self, json_str: str):
         self._win.on_save_settings(json_str)
 
-    @pyqtSlot(str)
-    def test_rawg(self, key: str):
-        self._win.on_test_rawg(key)
+    @pyqtSlot(str, str)
+    def test_igdb(self, client_id: str, client_secret: str):
+        self._win.on_test_igdb(client_id, client_secret)
 
     @pyqtSlot()
     def clear_cache(self):
@@ -657,7 +657,6 @@ class MainWindow(QMainWindow):
             self._cover_thread.quit()
             self._cover_thread.wait(3000)
 
-        # Sépare les PKG sans cover des autres
         without_cover = [
             p for p in packages
             if not p.get("cover_path")
@@ -665,9 +664,10 @@ class MainWindow(QMainWindow):
         ]
 
         if not without_cover:
+            print("Cover loader : toutes les covers sont déjà présentes")
             return
 
-        print(f"Cover loader : {len(without_cover)} PKG sans jaquette")
+        print(f"Cover loader : {len(without_cover)} PKG sans jaquette à traiter")
 
         self._cover_thread = CoverLoaderThread(without_cover)
         self._cover_thread.cover_ready.connect(self._on_cover_ready)
@@ -1061,22 +1061,17 @@ class MainWindow(QMainWindow):
         except json.JSONDecodeError:
             pass
 
-    def on_test_rawg(self, key: str):
-        if not key:
+    def on_test_igdb(self, client_id: str, client_secret: str):
+        if not client_id or not client_secret:
+            QMessageBox.warning(self, "IGDB", "Remplis le Client ID et le Client Secret.")
             return
         try:
-            resp = requests.get(
-                "https://api.rawg.io/api/games",
-                params={"key": key, "page_size": 1},
-                timeout=5
-            )
-            if resp.status_code == 200:
-                QMessageBox.information(self, "RAWG.io", "✅ Clé API valide !")
+            from core.api_client import get_igdb_token
+            token = get_igdb_token(client_id, client_secret)
+            if token:
+                QMessageBox.information(self, "IGDB", "✅ Connexion IGDB réussie !")
             else:
-                QMessageBox.warning(
-                    self, "RAWG.io",
-                    f"❌ Clé invalide (code {resp.status_code})"
-                )
+                QMessageBox.warning(self, "IGDB", "❌ Échec — vérifie ton Client ID et Secret.")
         except Exception as e:
             QMessageBox.critical(self, "Erreur", str(e))
 
@@ -1088,14 +1083,31 @@ class MainWindow(QMainWindow):
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
+
         from core.cover_loader import COVERS_DIR, SCREENSHOTS_DIR
         import shutil
+
+        # Supprime les dossiers cache
         for d in [COVERS_DIR, SCREENSHOTS_DIR]:
             if d.exists():
                 shutil.rmtree(d)
                 d.mkdir(parents=True)
+
+        # Remet cover_path et screenshots à vide en base
+        self._db._conn.execute("UPDATE games SET cover_path = ''")
+        self._db._conn.execute("UPDATE games SET screenshots = '[]'")
+        self._db._conn.commit()
+
+        # Met à jour en mémoire
+        for pkg in self._packages:
+            pkg["cover_path"] = ""
+            pkg["screenshots"] = []
+
         self._status_msg = "Cache vidé"
         self._show_settings()
+
+        # Relance le cover loader pour tout réextraire
+        self._start_cover_loader(self._packages)
 
     def on_reset_db(self):
         reply = QMessageBox.warning(

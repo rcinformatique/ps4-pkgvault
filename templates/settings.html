@@ -147,47 +147,57 @@
   </div>
 
   <!-- APIs -->
-  <div class="settings-section">
-    <div class="settings-section-header">
-      <span class="icon">🔌</span> APIs &amp; Données
-    </div>
-
-    <div class="settings-row">
-      <div class="settings-row-text">
-        <div class="row-label">Clé API RAWG.io</div>
-        <div class="row-desc">Descriptions, genres, ratings et screenshots · rawg.io/apidocs</div>
-      </div>
-      <div class="input-row">
-        <input class="settings-input" type="text" id="rawg-key"
-          placeholder="Votre clé RAWG…"
-          value="{{ settings.rawg_api_key or '' }}" />
-        <button class="test-btn" onclick="testRawg()">Tester</button>
-      </div>
-    </div>
-
-    <div class="settings-row">
-      <div class="settings-row-text">
-        <div class="row-label">Clé API IGDB (Twitch Client ID)</div>
-        <div class="row-desc">Vidéos et artworks · dev.twitch.tv (gratuit)</div>
-      </div>
-      <div class="input-row">
-        <input class="settings-input" type="text" id="igdb-key"
-          placeholder="Twitch Client ID…"
-          value="{{ settings.igdb_client_id or '' }}" />
-      </div>
-    </div>
-
-    <div class="settings-row">
-      <div class="settings-row-text">
-        <div class="row-label">Téléchargement automatique</div>
-        <div class="row-desc">Lance la récupération API après chaque scan</div>
-      </div>
-      <button class="toggle {{ 'on' if settings.auto_fetch == '1' else 'off' }}"
-        id="toggle-auto"
-        onclick="toggleAuto()"></button>
-    </div>
-
+<div class="settings-section">
+  <div class="settings-section-header">
+    <span class="icon">🔌</span> APIs &amp; Données
   </div>
+
+  <!-- IGDB Client ID -->
+  <div class="settings-row">
+    <div class="settings-row-text">
+      <div class="row-label">Twitch Client ID</div>
+      <div class="row-desc">
+        1. Va sur <strong>dev.twitch.tv</strong> → Console → Enregistrer une application<br>
+        2. Nom : ce que tu veux · OAuth : <strong>http://localhost</strong> · Catégorie : <strong>Application Integration</strong><br>
+        3. Copie le <strong>Client ID</strong> généré ici
+      </div>
+    </div>
+    <div class="input-row">
+      <input class="settings-input" type="text" id="igdb-client-id"
+        placeholder="Twitch Client ID…"
+        value="{{ settings.igdb_client_id or '' }}" />
+    </div>
+  </div>
+
+  <!-- IGDB Client Secret -->
+  <div class="settings-row">
+    <div class="settings-row-text">
+      <div class="row-label">Twitch Client Secret</div>
+      <div class="row-desc">
+        4. Dans ta Console Twitch → <strong>Nouveau secret</strong> → copie-le ici<br>
+        ⚠️ Ne partage jamais ce secret
+      </div>
+    </div>
+    <div class="input-row">
+      <input class="settings-input" type="password" id="igdb-client-secret"
+        placeholder="Twitch Client Secret…"
+        value="{{ settings.igdb_client_secret or '' }}" />
+      <button class="test-btn" onclick="testIgdb()">Tester</button>
+    </div>
+  </div>
+
+  <!-- Auto-fetch -->
+  <div class="settings-row">
+    <div class="settings-row-text">
+      <div class="row-label">Téléchargement automatique</div>
+      <div class="row-desc">Lance la récupération API après chaque scan</div>
+    </div>
+    <button class="toggle {{ 'on' if settings.auto_fetch == '1' else 'off' }}"
+      id="toggle-auto"
+      onclick="toggleAuto()"></button>
+  </div>
+
+</div>
 
   <!-- Affichage -->
   <div class="settings-section">
@@ -270,18 +280,19 @@ function toggleAuto() {
   btn.className = 'toggle ' + (_autoFetch ? 'on' : 'off');
 }
 
-function testRawg() {
-  var key = document.getElementById('rawg-key').value.trim();
-  _callBridge(function(b) { b.test_rawg(key); });
+function testIgdb() {
+  var client_id     = document.getElementById('igdb-client-id').value.trim();
+  var client_secret = document.getElementById('igdb-client-secret').value.trim();
+  _callBridge(function(b) { b.test_igdb(client_id, client_secret); });
 }
 
 function saveSettings() {
   var data = {
-    rawg_api_key:   document.getElementById('rawg-key').value.trim(),
-    igdb_client_id: document.getElementById('igdb-key').value.trim(),
-    auto_fetch:     _autoFetch ? '1' : '0',
-    card_min_width: document.getElementById('card-size').value,
-    language:       document.getElementById('lang').value,
+    igdb_client_id:     document.getElementById('igdb-client-id').value.trim(),
+    igdb_client_secret: document.getElementById('igdb-client-secret').value.trim(),
+    auto_fetch:         _autoFetch ? '1' : '0',
+    card_min_width:     document.getElementById('card-size').value,
+    language:           document.getElementById('lang').value,
   };
   _callBridge(function(b) {
     b.save_settings(JSON.stringify(data));
