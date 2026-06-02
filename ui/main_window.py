@@ -1019,13 +1019,19 @@ class MainWindow(QMainWindow):
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
+
         self._db.close()
         from core.database import DB_PATH
         if DB_PATH.exists():
             DB_PATH.unlink()
-        self._db          = Database()
-        self._packages    = []
-        self._status_msg  = "Base de données réinitialisée"
+
+        self._db = Database()
+        self._packages = []
+        self._status_msg = "Base de données réinitialisée"
+
+        # Réinitialise aussi le journal d'activité
+        activity.reset()
+
         self._show_library()
 
     # ------------------------------------------------------------------ #

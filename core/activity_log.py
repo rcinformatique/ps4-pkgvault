@@ -176,6 +176,16 @@ class ActivityLogger:
         except (OSError, json.JSONDecodeError):
             self._events = []
 
+    def reset(self):
+        """Vide les événements et supprime le fichier JSON."""
+        with self._lock:
+            self._events = []
+        try:
+            if ACTIVITY_FILE.exists():
+                ACTIVITY_FILE.unlink()
+        except OSError:
+            pass
+        self._notify()
 
 # Accès global
 activity = ActivityLogger()
