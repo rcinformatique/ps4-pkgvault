@@ -428,28 +428,10 @@ class MainWindow(QMainWindow):
             self._show_activity()
 
     def _show_activity(self):
-        import json as _json
-        events = activity.get_events(limit=300)
-        counts = activity.get_counts()
-
-        # Génère le feed HTML statique (fallback si JS désactivé)
-        # Le JS rerender côté client via _events JSON
-        feed_html = ""  # le JS gère tout
-
-        from core.activity_log import EVENT_SCAN, EVENT_API, EVENT_ERROR
-        events_json = _json.dumps(events, ensure_ascii=False)
-
-        # Charge le template
-        from ui.activity_template import ACTIVITY_TEMPLATE
-        html = ACTIVITY_TEMPLATE
-        html = html.replace("{{ total }}", str(len(events)))
-        html = html.replace("{{ count_scan }}", str(counts.get(EVENT_SCAN, 0)))
-        html = html.replace("{{ count_api }}", str(counts.get(EVENT_API, 0)))
-        html = html.replace("{{ count_error }}", str(counts.get(EVENT_ERROR, 0)))
-        html = html.replace("{{ feed_html }}", feed_html)
-        html = html.replace("{{ events_json }}", events_json)
-        html = html.replace("{{ status_msg }}", self._status_msg)
-
+        html = self._engine.render_activity(
+            stats=self._get_stats(),
+            status_msg=self._status_msg,
+        )
         self._load_html(html, show_back=False)
 
     def on_clear_activity(self):
@@ -712,7 +694,7 @@ class MainWindow(QMainWindow):
     def _on_game_updated(self, content_id: str, api_data: dict):
 
         title = api_data.get("title_api", "") or content_id
-        source = api_data.get("source", "RAWG")
+        source = "RAWG" if api_data.get("rating") is not None else "IGDB"
         activity.log_api(title, source=source, content_id=content_id)
 
         self._db.update_api_data(content_id, api_data)
@@ -862,8 +844,37 @@ class MainWindow(QMainWindow):
 
     def on_rescan_folder(self, path: str):
         folders = self._db.get_folders()
-        if path in folders:
-            self._start_scan([path])
+        if path not in folders:
+            return
+
+        # Trouve les PKG manquants dans CE dossier
+        folder_path = Path(path)
+        disk_files = set(str(f) for f in folder_path.rglob("*.pkg"))
+
+        # PKG en base qui appartiennent à ce dossier
+        folder_pkgs = [
+            p for p in self._packages
+            if p.get("filepath", "").startswith(path)
+        ]
+
+        missing = [
+            p for p in folder_pkgs
+            if p.get("filepath") not in disk_files
+        ]
+
+        # Supprime les manquants
+        for pkg in missing:
+            filepath = pkg.get("filepath", "")
+            self._db.delete_by_filepath(filepath)
+            self._packages = [
+                p for p in self._packages
+                if p.get("filepath") != filepath
+            ]
+
+        if missing:
+            print(f"Rescanner : {len(missing)} PKG manquants supprimés")
+
+        self._start_scan([path])
 
     def on_delete_folder(self, path: str):
         reply = QMessageBox.question(
