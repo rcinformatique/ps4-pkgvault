@@ -32,6 +32,7 @@ class ScanThread(QThread):
         self._folders = folders
         self._db      = db
         self._running = True
+        self._refetch_target = None
 
     def run(self):
         all_packages = []
@@ -795,7 +796,17 @@ class MainWindow(QMainWindow):
             if (el) el.style.display = 'none';
         """)
         self._status_msg = "✅ Données IGDB récupérées"
-        self._packages   = self._db.get_all_games()
+        self._packages = self._db.get_all_games()
+
+        # Si on vient d'un refetch, retourne sur la page de détail
+        if hasattr(self, '_refetch_target') and self._refetch_target:
+            content_id = self._refetch_target
+            self._refetch_target = None
+            pkg = self._db.get_game(content_id)
+            if pkg:
+                self._show_detail(pkg)
+                return
+
         self._show_library()
 
     # ------------------------------------------------------------------ #
@@ -857,7 +868,7 @@ class MainWindow(QMainWindow):
 
     def on_refetch_api(self, content_id: str):
         igdb_client_id = self._db.get_setting("igdb_client_id", "")
-        igdb_secret    = self._db.get_setting("igdb_client_secret", "")
+        igdb_secret = self._db.get_setting("igdb_client_secret", "")
 
         if not igdb_client_id or not igdb_secret:
             QMessageBox.warning(
@@ -876,6 +887,8 @@ class MainWindow(QMainWindow):
         for pkg in self._packages:
             if pkg.get("content_id") == content_id:
                 pkg["api_fetched"] = 0
+                # Stocke le content_id pour revenir sur le détail après
+                self._refetch_target = content_id
                 self._start_api_worker_manual([pkg])
                 break
 
