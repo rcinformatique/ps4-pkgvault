@@ -275,41 +275,18 @@
 {% endblock %}
 
 {% block content %}
-<div class="grid-scroll">
+<div class="grid-scroll" id="main-scroll">
+
   {% if packages %}
 
-  <!-- VUE GRILLE -->
-  <div class="grid" id="view-grid" style="display: {% if view_mode == 'list' %}none{% else %}grid{% endif %};">
-    {% for pkg in packages %}
-    <div class="pkg-card"
-      id="card-{{ loop.index0 }}"
-      onclick="onCardClick({{ loop.index0 }})"
-      oncontextmenu="showCtxMenu(event, {{ loop.index0 }})">
-      <div class="cover cover-bg-{{ pkg.type }}">
-        {% if pkg.cover_path %}
-          <img src="file:///{{ pkg.cover_path }}" alt="{{ pkg.title }}" />
-        {% else %}
-          <div class="cover-inner">{{ pkg.type_icon }}</div>
-        {% endif %}
-        <span class="type-badge badge-{{ pkg.type }}">{{ pkg.type_label }}</span>
-        {% if pkg.firmware %}
-          <span class="fw-badge">FW {{ pkg.firmware }}</span>
-        {% endif %}
-      </div>
-      <div class="card-info">
-        <div class="card-title">{{ pkg.title_api or pkg.title }}</div>
-        <div class="card-cid">{{ pkg.content_id[:20] if pkg.content_id else '' }}</div>
-        <div class="card-bottom">
-          <span class="card-size">{{ pkg.size_str }}</span>
-          <span class="card-region">{{ pkg.region }}</span>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
+  <!-- VUE GRILLE — vide, remplie par JS -->
+  <div class="grid" id="view-grid"
+       style="display: {% if view_mode == 'list' %}none{% else %}grid{% endif %};">
   </div>
 
-  <!-- VUE LISTE -->
-  <div id="view-list" style="display: {% if view_mode == 'list' %}block{% else %}none{% endif %};">
+  <!-- VUE LISTE — vide, remplie par JS -->
+  <div id="view-list"
+       style="display: {% if view_mode == 'list' %}block{% else %}none{% endif %};">
     <div class="list-header">
       <div class="lh-thumb"></div>
       <div class="lh-type">Type</div>
@@ -318,38 +295,12 @@
       <div class="lh-size">Taille</div>
       <div class="lh-region">Région</div>
     </div>
-    <div class="list-view">
-      {% for pkg in packages %}
-      <div class="list-item"
-        id="list-{{ loop.index0 }}"
-        onclick="onCardClick({{ loop.index0 }})"
-        oncontextmenu="showCtxMenu(event, {{ loop.index0 }})">
-
-        <div class="list-thumb cover-bg-{{ pkg.type }}">
-          {% if pkg.cover_path %}
-            <img src="file:///{{ pkg.cover_path }}" alt="{{ pkg.title }}" />
-          {% else %}
-            {{ pkg.type_icon }}
-          {% endif %}
-        </div>
-
-        <span class="list-badge badge-{{ pkg.type }}">{{ pkg.type_label }}</span>
-
-        <div class="list-title">
-          <div class="list-title-main">{{ pkg.title_api or pkg.title }}</div>
-          <div class="list-title-sub">{{ pkg.content_id }}</div>
-        </div>
-
-        <div class="list-fw">
-          {% if pkg.firmware %}🛡 FW {{ pkg.firmware }}{% else %}—{% endif %}
-        </div>
-        <div class="list-size">{{ pkg.size_str }}</div>
-        <div class="list-region">{{ pkg.region }}</div>
-
-      </div>
-      {% endfor %}
-    </div>
+    <div class="list-view" id="view-list-body"></div>
   </div>
+
+  <!-- Sentinel scroll infini -->
+  <div id="scroll-sentinel"
+       style="height:1px; margin-top:20px;"></div>
 
   {% else %}
   <div class="empty-state">
@@ -361,8 +312,10 @@
     </div>
   </div>
   {% endif %}
+
 </div>
 
+<!-- Context menu inchangé -->
 <div class="ctx-menu" id="ctx-menu">
   <div class="ctx-title" id="ctx-title">Titre</div>
   <div class="ctx-sep"></div>
@@ -382,48 +335,155 @@ var _ctxIndex      = -1;
 var _selectedIndex = -1;
 var _viewMode      = '{{ view_mode }}';
 
+// ── Scroll infini ──────────────────────────────────────────────
+var _PAGE_SIZE  = 50;
+var _loadedUp   = 0;  // nombre de cartes déjà rendues
+
+function _renderNextBatch() {
+    var batch = _packages.slice(_loadedUp, _loadedUp + _PAGE_SIZE);
+    if (!batch.length) return;
+
+    var grid = document.getElementById('view-grid');
+    var list = document.getElementById('view-list-body');
+
+    batch.forEach(function(pkg, i) {
+        var index = _loadedUp + i;
+
+        // ── Carte grille ──
+        if (grid) {
+            var card = document.createElement('div');
+            card.className = 'pkg-card';
+            card.id        = 'card-' + index;
+            card.onclick        = function() { onCardClick(index); };
+            card.oncontextmenu  = function(e) { showCtxMenu(e, index); };
+
+            var cover = pkg.cover_path
+                ? '<img src="file:///' + pkg.cover_path + '" alt="' + esc(pkg.title) + '" />'
+                : '<div class="cover-inner">' + (pkg.type_icon || '🎮') + '</div>';
+
+            var fw = pkg.firmware
+                ? '<span class="fw-badge">FW ' + pkg.firmware + '</span>'
+                : '';
+
+            card.innerHTML =
+                '<div class="cover cover-bg-' + pkg.type + '">' +
+                    cover +
+                    '<span class="type-badge badge-' + pkg.type + '">' + esc(pkg.type_label) + '</span>' +
+                    fw +
+                '</div>' +
+                '<div class="card-info">' +
+                    '<div class="card-title">'  + esc(pkg.title_api || pkg.title) + '</div>' +
+                    '<div class="card-cid">'    + esc((pkg.content_id || '').substring(0, 20)) + '</div>' +
+                    '<div class="card-bottom">' +
+                        '<span class="card-size">'   + esc(pkg.size_str) + '</span>' +
+                        '<span class="card-region">' + esc(pkg.region)   + '</span>' +
+                    '</div>' +
+                '</div>';
+
+            grid.appendChild(card);
+        }
+
+        // ── Ligne liste ──
+        if (list) {
+            var row = document.createElement('div');
+            row.className      = 'list-item';
+            row.id             = 'list-' + index;
+            row.onclick        = function() { onCardClick(index); };
+            row.oncontextmenu  = function(e) { showCtxMenu(e, index); };
+
+            var thumb = pkg.cover_path
+                ? '<img src="file:///' + pkg.cover_path + '" alt="" />'
+                : (pkg.type_icon || '🎮');
+
+            row.innerHTML =
+                '<div class="list-thumb cover-bg-' + pkg.type + '">' + thumb + '</div>' +
+                '<span class="list-badge badge-' + pkg.type + '">' + esc(pkg.type_label) + '</span>' +
+                '<div class="list-title">' +
+                    '<div class="list-title-main">' + esc(pkg.title_api || pkg.title) + '</div>' +
+                    '<div class="list-title-sub">'  + esc(pkg.content_id || '')       + '</div>' +
+                '</div>' +
+                '<div class="list-fw">'     + (pkg.firmware ? '🛡 FW ' + pkg.firmware : '—') + '</div>' +
+                '<div class="list-size">'   + esc(pkg.size_str) + '</div>' +
+                '<div class="list-region">' + esc(pkg.region)   + '</div>';
+
+            list.appendChild(row);
+        }
+    });
+
+    _loadedUp += batch.length;
+
+    // Met à jour le sentinel — s'il n'y a plus rien, on le retire
+    var sentinel = document.getElementById('scroll-sentinel');
+    if (sentinel) {
+        sentinel.style.display = _loadedUp >= _packages.length ? 'none' : 'block';
+    }
+}
+
+function esc(s) {
+    return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// ── IntersectionObserver — déclenche quand le sentinel est visible ──
+var _observer = new IntersectionObserver(function(entries) {
+    if (entries[0].isIntersecting) {
+        _renderNextBatch();
+    }
+}, { rootMargin: '200px' });
+
+// ── Init ────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    var sentinel = document.getElementById('scroll-sentinel');
+    if (sentinel) _observer.observe(sentinel);
+    _renderNextBatch();  // premier lot
+});
+
+// ── Fonctions existantes inchangées ─────────────────────────────
 function onCardClick(index) {
-  document.querySelectorAll('.pkg-card, .list-item').forEach(function(c) {
-    c.classList.remove('selected');
-  });
-  var card = document.getElementById('card-' + index);
-  var item = document.getElementById('list-' + index);
-  if (card) card.classList.add('selected');
-  if (item) item.classList.add('selected');
-  _selectedIndex = index;
-  _callBridge(function(b) {
-    b.card_clicked(_packages[index].filepath);
-  });
+    document.querySelectorAll('.pkg-card, .list-item').forEach(function(c) {
+        c.classList.remove('selected');
+    });
+    var card = document.getElementById('card-' + index);
+    var item = document.getElementById('list-' + index);
+    if (card) card.classList.add('selected');
+    if (item) item.classList.add('selected');
+    _selectedIndex = index;
+    _callBridge(function(b) {
+        b.card_clicked(_packages[index].filepath);
+    });
 }
 
 function showCtxMenu(e, index) {
-  e.preventDefault();
-  e.stopPropagation();
-  _ctxIndex = index;
-  var pkg   = _packages[index];
-  document.getElementById('ctx-title').textContent =
-    pkg.title_api || pkg.title || 'Inconnu';
-  var menu = document.getElementById('ctx-menu');
-  menu.style.left = e.clientX + 'px';
-  menu.style.top  = e.clientY + 'px';
-  menu.classList.add('visible');
+    e.preventDefault();
+    e.stopPropagation();
+    _ctxIndex = index;
+    var pkg   = _packages[index];
+    document.getElementById('ctx-title').textContent =
+        pkg.title_api || pkg.title || 'Inconnu';
+    var menu = document.getElementById('ctx-menu');
+    menu.style.left = e.clientX + 'px';
+    menu.style.top  = e.clientY + 'px';
+    menu.classList.add('visible');
 }
 
 function ctxAction(action) {
-  document.getElementById('ctx-menu').classList.remove('visible');
-  if (_ctxIndex < 0) return;
-  var pkg = _packages[_ctxIndex];
-  _callBridge(function(b) {
-    if      (action === 'open_folder') b.open_folder(pkg.filepath);
-    else if (action === 'copy_path')   b.copy_path(pkg.filepath);
-    else if (action === 'copy_cid')    b.copy_cid(pkg.content_id);
-    else if (action === 'rename')      b.rename_file(pkg.filepath);
-    else if (action === 'delete')      b.delete_file(pkg.filepath);
-  });
+    document.getElementById('ctx-menu').classList.remove('visible');
+    if (_ctxIndex < 0) return;
+    var pkg = _packages[_ctxIndex];
+    _callBridge(function(b) {
+        if      (action === 'open_folder') b.open_folder(pkg.filepath);
+        else if (action === 'copy_path')   b.copy_path(pkg.filepath);
+        else if (action === 'copy_cid')    b.copy_cid(pkg.content_id);
+        else if (action === 'rename')      b.rename_file(pkg.filepath);
+        else if (action === 'delete')      b.delete_file(pkg.filepath);
+    });
 }
 
 document.addEventListener('click', function() {
-  var menu = document.getElementById('ctx-menu');
-  if (menu) menu.classList.remove('visible');
+    var menu = document.getElementById('ctx-menu');
+    if (menu) menu.classList.remove('visible');
 });
 {% endblock %}
