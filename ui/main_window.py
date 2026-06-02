@@ -518,6 +518,8 @@ class MainWindow(QMainWindow):
                 if q in (p.get("title") or "").lower()
                    or q in (p.get("title_api") or "").lower()
                    or q in (p.get("content_id") or "").lower()
+                   or q in (p.get("title_id") or "").lower()
+                   or q in (p.get("filename") or "").lower()
             ]
 
         def sort_key(p):
@@ -654,10 +656,12 @@ class MainWindow(QMainWindow):
         self._cover_thread.start()
 
     def _on_cover_ready(self, content_id: str, cover_path: str):
-        self._db.update_cover(content_id, cover_path)
+        # Normalise en absolu avant de sauvegarder
+        cover_abs = str(Path(cover_path).resolve())
+        self._db.update_cover(content_id, cover_abs)
         for pkg in self._packages:
             if pkg.get("content_id") == content_id:
-                pkg["cover_path"] = cover_path
+                pkg["cover_path"] = cover_abs
                 break
 
     # ------------------------------------------------------------------ #

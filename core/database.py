@@ -412,15 +412,18 @@ class Database:
         return [self._row_to_dict(r) for r in cur.fetchall()]
 
     def search(self, query: str) -> list[dict]:
-        """Recherche dans le titre et le Content-ID."""
+        """Recherche dans le titre, Content-ID, Title-ID et nom de fichier."""
         pattern = f"%{query}%"
         cur = self._conn.execute("""
-            SELECT * FROM games
-            WHERE title      LIKE :q
-               OR title_api  LIKE :q
-               OR content_id LIKE :q
-            ORDER BY COALESCE(title_api, title)
-        """, {"q": pattern})
+                                 SELECT *
+                                 FROM games
+                                 WHERE title LIKE :q
+                                    OR title_api LIKE :q
+                                    OR content_id LIKE :q
+                                    OR title_id LIKE :q
+                                    OR filename LIKE :q
+                                 ORDER BY COALESCE(title_api, title)
+                                 """, {"q": pattern})
         return [self._row_to_dict(r) for r in cur.fetchall()]
 
     def get_unfetched(self) -> list[dict]:
