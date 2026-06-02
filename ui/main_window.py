@@ -67,7 +67,7 @@ class ScanFilesThread(QThread):
     def run(self):
         from core.pkg_reader import read_pkg
         packages = []
-        errors   = []
+        errors = []
         for filepath in self._filepaths:
             if not self._running:
                 break
@@ -75,7 +75,7 @@ class ScanFilesThread(QThread):
             if result:
                 self._db.upsert_game(result)
                 packages.append(result)
-                self.pkg_scanned.emit(result)  # ← émet chaque PKG
+                self.pkg_scanned.emit(result)
             else:
                 errors.append(filepath)
         self.scan_done.emit(packages, errors)
@@ -263,16 +263,25 @@ class MainWindow(QMainWindow):
 
     def _start_smart_scan(self, folders: list[str]):
         """Scanne uniquement les nouveaux fichiers."""
-        known_paths = set(p.get("filepath", "") for p in self._packages)
 
+        # Normalise tous les chemins connus via Path.resolve()
+        known_paths = set(
+            str(Path(p.get("filepath", "")).resolve())
+            for p in self._packages
+            if p.get("filepath")
+        )
+
+        # Collecte les fichiers disque normalisés
         disk_files = []
         for folder in folders:
             folder_path = Path(folder)
             if folder_path.exists():
-                disk_files.extend(str(f) for f in folder_path.rglob("*.pkg"))
+                disk_files.extend(
+                    str(f.resolve()) for f in folder_path.rglob("*.pkg")
+                )
 
         new_files = [f for f in disk_files if f not in known_paths]
-        missing   = [p for p in known_paths if p and not Path(p).exists()]
+        missing = [p for p in known_paths if p and not Path(p).exists()]
 
         print(f"Smart scan : {len(new_files)} nouveaux, {len(missing)} manquants")
 
@@ -281,7 +290,7 @@ class MainWindow(QMainWindow):
             self._db.delete_by_filepath(filepath)
             self._packages = [
                 p for p in self._packages
-                if p.get("filepath") != filepath
+                if str(Path(p.get("filepath", "")).resolve()) != filepath
             ]
 
         if missing:
@@ -308,19 +317,25 @@ class MainWindow(QMainWindow):
         self._scan_thread.start()
 
     def _on_pkg_scanned(self, pkg_data: dict):
-
         """
         Appelé pour chaque PKG scanné — ajoute la carte
         directement dans le DOM sans recharger la page.
         """
-        activity.log_scan(pkg_data)
-
         import json as _json
         from ui.template_engine import TYPE_INFO
 
+        # Ne logue que si vraiment nouveau (pas déjà en mémoire)
+        filepath_resolved = str(Path(pkg_data.get("filepath", "")).resolve())
+        already_known = any(
+            str(Path(p.get("filepath", "")).resolve()) == filepath_resolved
+            for p in self._packages
+        )
+        if not already_known:
+            activity.log_scan(pkg_data)
+
         # Ajoute au tableau en mémoire si pas déjà présent
         exists = any(
-            p.get("filepath") == pkg_data.get("filepath")
+            str(Path(p.get("filepath", "")).resolve()) == filepath_resolved
             for p in self._packages
         )
         if not exists:
@@ -349,11 +364,13 @@ class MainWindow(QMainWindow):
             if cover else
             f'<div class="cover-inner">{info["icon"]}</div>'
         )
-        title = (pkg_data.get("title_api") or pkg_data.get("title") or "").replace("'", "\\'")
+
+        # Échappe les caractères dangereux pour l'injection JS
+        title = (pkg_data.get("title_api") or pkg_data.get("title") or "")
+        title = title.replace("\\", "\\\\").replace("`", "\\`").replace("'", "\\'")
         cid = (pkg_data.get("content_id") or "")[:20]
         size_str = pkg_data.get("size_str", "")
         region = pkg_data.get("region", "")
-        pkg_type = pkg_data.get("type", "game")
 
         js = f"""
         (function() {{
@@ -362,8 +379,7 @@ class MainWindow(QMainWindow):
                 _packages.push({pkg_json});
             }}
 
-            var grid = document.getElementById('view-grid');
-            var list = document.getElementById('view-list');
+            var grid  = document.getElementById('view-grid');
             var empty = document.querySelector('.empty-state');
 
             // Cache l'état vide
@@ -393,7 +409,6 @@ class MainWindow(QMainWindow):
                     </div>
                 `;
                 grid.appendChild(card);
-                // Scroll vers la nouvelle carte
                 card.scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
             }}
 
