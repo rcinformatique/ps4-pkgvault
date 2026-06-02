@@ -115,6 +115,18 @@ class Database:
         ).fetchone()
 
         if existing:
+            # Vérifie si le nouveau content_id est déjà pris par un AUTRE enregistrement
+            cid_conflict = self._conn.execute(
+                "SELECT id FROM games WHERE content_id = ? AND filepath != ?",
+                (content_id, filepath)
+            ).fetchone()
+
+            # Si conflit, garde le content_id actuel en base
+            if cid_conflict:
+                import hashlib
+                suffix = hashlib.md5(filepath.encode()).hexdigest()[:6]
+                content_id = f"{content_id}#{suffix}"
+
             self._conn.execute("""
                                UPDATE games
                                SET title        = COALESCE(NULLIF(:title, ''), title),
