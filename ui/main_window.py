@@ -264,33 +264,33 @@ class MainWindow(QMainWindow):
     def _start_smart_scan(self, folders: list[str]):
         """Scanne uniquement les nouveaux fichiers."""
 
-        # Normalise tous les chemins connus via Path.resolve()
         known_paths = set(
-            str(Path(p.get("filepath", "")).resolve())
+            os.path.normcase(os.path.abspath(p.get("filepath", "")))
             for p in self._packages
             if p.get("filepath")
         )
 
-        # Collecte les fichiers disque normalisés
         disk_files = []
         for folder in folders:
             folder_path = Path(folder)
             if folder_path.exists():
-                disk_files.extend(
-                    str(f.resolve()) for f in folder_path.rglob("*.pkg")
-                )
+                for f in folder_path.rglob("*.pkg"):
+                    disk_files.append(
+                        os.path.normcase(os.path.abspath(str(f)))
+                    )
 
         new_files = [f for f in disk_files if f not in known_paths]
         missing = [p for p in known_paths if p and not Path(p).exists()]
 
         print(f"Smart scan : {len(new_files)} nouveaux, {len(missing)} manquants")
 
-        # Supprime les fichiers manquants
         for filepath in missing:
             self._db.delete_by_filepath(filepath)
             self._packages = [
                 p for p in self._packages
-                if str(Path(p.get("filepath", "")).resolve()) != filepath
+                if os.path.normcase(os.path.abspath(
+                    p.get("filepath", "")
+                )) != filepath
             ]
 
         if missing:
@@ -457,7 +457,7 @@ class MainWindow(QMainWindow):
         self.navigate(self._previous_page)
 
     def _load_html(self, html: str, show_back: bool = False):
-        html = self._inject_webchannel(html)
+        # Plus besoin d'injecter le webchannel — base.html le gère
         self._web.setHtml(html, QUrl("file:///"))
         if show_back:
             try:
@@ -474,15 +474,9 @@ class MainWindow(QMainWindow):
         self._web.page().runJavaScript("showBackBtn(true);")
 
     def _inject_webchannel(self, html: str) -> str:
-        script = """
-        <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-        <script>
-        new QWebChannel(qt.webChannelTransport, function(channel) {
-            window.pybridge = channel.objects.pybridge;
-        });
-        </script>
-        """
-        return html.replace("</head>", script + "</head>", 1)
+        # Garde pour compatibilité mais ne fait plus rien
+        # base.html contient déjà le script WebChannel
+        return html
 
     # ------------------------------------------------------------------ #
     #  Stats                                                               #
@@ -522,8 +516,8 @@ class MainWindow(QMainWindow):
             pkgs = [
                 p for p in pkgs
                 if q in (p.get("title") or "").lower()
-                or q in (p.get("title_api") or "").lower()
-                or q in (p.get("content_id") or "").lower()
+                   or q in (p.get("title_api") or "").lower()
+                   or q in (p.get("content_id") or "").lower()
             ]
 
         def sort_key(p):
@@ -533,7 +527,13 @@ class MainWindow(QMainWindow):
                 return p.get("size_bytes", 0)
             if self._active_sort == "type":
                 return p.get("type", "")
-            return p.get("date_added", "")
+            if self._active_sort == "date":
+                return (
+                        p.get("date_added")
+                        or p.get("last_scanned")
+                        or p.get("filepath", "")
+                )
+            return ""
 
         pkgs.sort(key=sort_key)
         return pkgs
@@ -861,60 +861,62 @@ class MainWindow(QMainWindow):
         folders = self._db.get_folders()
         if path not in folders:
             return
+        # Délai pour laisser le WebChannel terminer son callback JS
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(100, lambda: self._do_rescan_folder(path))
 
-        # Stoppe proprement tout thread en cours AVANT de faire quoi que ce soit
-        if self._scan_thread and self._scan_thread.isRunning():
-            self._scan_thread.stop()
-            self._scan_thread.quit()
-            self._scan_thread.wait(3000)  # timeout 3s max
-            self._scan_thread = None
+    def _do_rescan_folder(self, path: str):
+        """Logique de rescan — appelée après délai WebChannel."""
 
-        if self._cover_thread and self._cover_thread.isRunning():
-            self._cover_thread.stop()
-            self._cover_thread.quit()
-            self._cover_thread.wait(3000)
-            self._cover_thread = None
+        # Stoppe les threads en cours
+        for thread in [self._scan_thread, self._cover_thread, self._api_thread]:
+            if thread and thread.isRunning():
+                if hasattr(thread, "stop"):
+                    thread.stop()
+                thread.quit()
+                thread.wait(3000)
 
-        if self._api_thread and self._api_thread.isRunning():
-            self._api_thread.stop()
-            self._api_thread.quit()
-            self._api_thread.wait(3000)
-            self._api_thread = None
+        self._scan_thread = None
+        self._cover_thread = None
+        self._api_thread = None
 
-        # Normalise le chemin du dossier
-        path_normalized = Path(path).resolve()
+        try:
+            path_norm = os.path.normcase(os.path.abspath(path))
 
-        # Trouve les PKG manquants dans CE dossier
-        disk_files = set(str(f) for f in path_normalized.rglob("*.pkg"))
+            disk_files = set(
+                os.path.normcase(os.path.abspath(str(f)))
+                for f in Path(path).rglob("*.pkg")
+            )
 
-        # PKG en base qui appartiennent à ce dossier — comparaison via Path
-        folder_pkgs = [
-            p for p in self._packages
-            if Path(p.get("filepath", "")).resolve().parts[:len(path_normalized.parts)]
-               == path_normalized.parts
-        ]
-
-        missing = [
-            p for p in folder_pkgs
-            if str(Path(p.get("filepath", "")).resolve()) not in disk_files
-        ]
-
-        # Supprime les manquants
-        for pkg in missing:
-            filepath = pkg.get("filepath", "")
-            self._db.delete_by_filepath(filepath)
-            self._packages = [
+            folder_pkgs = [
                 p for p in self._packages
-                if p.get("filepath") != filepath
+                if os.path.normcase(os.path.abspath(
+                    p.get("filepath", "")
+                )).startswith(path_norm)
             ]
 
-        if missing:
-            print(f"Rescanner : {len(missing)} PKG manquants supprimés")
-            self._packages = self._db.get_all_games()
-            self._show_library()
+            missing = [
+                p for p in folder_pkgs
+                if os.path.normcase(os.path.abspath(
+                    p.get("filepath", "")
+                )) not in disk_files
+            ]
 
-        # Lance le scan directement sans passer par _start_scan
-        # pour éviter un double arrêt de thread
+            for pkg in missing:
+                filepath = pkg.get("filepath", "")
+                self._db.delete_by_filepath(filepath)
+                self._packages = [
+                    p for p in self._packages
+                    if p.get("filepath") != filepath
+                ]
+
+            if missing:
+                print(f"Rescanner : {len(missing)} PKG manquants supprimés")
+                self._packages = self._db.get_all_games()
+
+        except Exception as e:
+            print(f"_do_rescan_folder erreur : {e}")
+
         self._status_msg = "Scan en cours…"
         self._show_library()
 
