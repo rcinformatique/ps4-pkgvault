@@ -32,11 +32,19 @@ DEFAULT_SETTINGS = {
 def _normalize_pkg(pkg: dict) -> dict:
     pkg_type = pkg.get("type", "game")
     info     = TYPE_INFO.get(pkg_type, TYPE_INFO["game"])
-    cover    = (pkg.get("cover_path") or "").replace("\\", "/")
-    screenshots = [
-        s.replace("\\", "/")
-        for s in (pkg.get("screenshots") or [])
-    ]
+
+    # Chemin absolu avec slashes forward pour les URLs HTML
+    raw_cover = pkg.get("cover_path") or ""
+    if raw_cover:
+        cover = Path(raw_cover).resolve().as_posix()
+    else:
+        cover = ""
+
+    screenshots = []
+    for s in (pkg.get("screenshots") or []):
+        if s:
+            screenshots.append(Path(s).resolve().as_posix())
+
     return {
         **pkg,
         "type_label":  info["label"],
