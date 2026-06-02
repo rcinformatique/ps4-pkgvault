@@ -302,11 +302,14 @@ def read_pkg(filepath: str | Path) -> dict | None:
         # Cherche le SFO dans les 512 Ko
         sfo_offset = header_data.find(SFO_MAGIC)
 
-        # Si pas trouvé, essaie dans 2 Mo
+        # Si pas trouvé, cherche progressivement jusqu'à 32 Mo
         if sfo_offset == -1:
-            with open(path, "rb") as f:
-                header_data = f.read(2 * 1024 * 1024)
-            sfo_offset = header_data.find(SFO_MAGIC)
+            for mb in [4, 8, 16, 32]:
+                with open(path, "rb") as f:
+                    header_data = f.read(mb * 1024 * 1024)
+                sfo_offset = header_data.find(SFO_MAGIC)
+                if sfo_offset != -1:
+                    break
 
         if sfo_offset == -1:
             return None
