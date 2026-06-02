@@ -102,7 +102,8 @@ class PyBridge(QObject):
 
     @pyqtSlot(str)
     def export_library(self, format: str):
-        self._win.on_export_library(format)
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(100, lambda: self._win.on_export_library(format))
 
     @pyqtSlot()
     def go_back(self):
