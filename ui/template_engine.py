@@ -122,6 +122,34 @@ class TemplateEngine:
         })
         return self._render("library.html", ctx)
 
+    def render_activity(
+            self,
+            stats: dict = None,
+            status_msg: str = "Prêt",
+    ) -> str:
+        import json as _json
+        from core.activity_log import activity, EVENT_SCAN, EVENT_API, EVENT_ERROR
+
+        events = activity.get_events(limit=300)
+        counts = activity.get_counts()
+
+        counts_mapped = {
+            "scan": counts.get(EVENT_SCAN, 0),
+            "api": counts.get(EVENT_API, 0),
+            "error": counts.get(EVENT_ERROR, 0),
+        }
+
+        ctx = _base_context("activity", stats, status_msg)
+        ctx.update({
+            "total": len(events),
+            "count_scan": counts_mapped["scan"],
+            "count_api": counts_mapped["api"],
+            "count_error": counts_mapped["error"],
+            "events_json": _json.dumps(events, ensure_ascii=False),
+            "counts_json": _json.dumps(counts_mapped, ensure_ascii=False),
+        })
+        return self._render("activity.html", ctx)
+
     def render_detail(
         self,
         pkg_data: dict,
