@@ -301,7 +301,13 @@ class Database:
     def get_unfetched(self) -> list[dict]:
         """Retourne les jeux dont l'API n'a pas encore été appelée."""
         cur = self._conn.execute(
-            "SELECT * FROM games WHERE api_fetched = 0 AND type = 'game' ORDER BY date_added"
+            """
+            SELECT *
+            FROM games
+            WHERE api_fetched = 0
+              AND type IN ('game', 'backport')
+            ORDER BY date_added
+            """
         )
         return [self._row_to_dict(r) for r in cur.fetchall()]
 
