@@ -4,8 +4,8 @@ from pathlib import Path
 from PyQt6.QtCore import QThread, pyqtSignal
 
 
-COVERS_DIR      = Path("cache/covers")
-SCREENSHOTS_DIR = Path("cache/screenshots")
+COVERS_DIR      = Path("cache/covers").resolve()
+SCREENSHOTS_DIR = Path("cache/screenshots").resolve()
 COVERS_DIR.mkdir(parents=True, exist_ok=True)
 SCREENSHOTS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -86,61 +86,13 @@ def extract_icon0(pkg_path: str | Path) -> bytes | None:
 
 
 # ------------------------------------------------------------------ #
-#  PS Store                                                            #
-# ------------------------------------------------------------------ #
-
-def fetch_psstore_cover(content_id: str) -> bytes | None:
-    """
-    Télécharge la jaquette depuis le PS Store.
-    Utilise le Content-ID complet pour une meilleure précision.
-    """
-    if not content_id or content_id == "UNKNOWN":
-        return None
-
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                      "AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/120.0.0.0 Safari/537.36"
-    }
-
-    # Régions prioritaires selon le code du Content-ID
-    region_code = content_id[:2].upper()
-    priority = {
-        "EP": [("FR", "fr"), ("GB", "en"), ("DE", "de"), ("IT", "it"), ("ES", "es")],
-        "UP": [("US", "en")],
-        "JP": [("JP", "ja")],
-        "HB": [("HK", "zh"), ("US", "en")],
-        "HP": [("HK", "zh"), ("US", "en")],
-        "NP": [("US", "en")],
-        "KP": [("KR", "ko")],
-    }
-    regions = priority.get(region_code, [
-        ("FR", "fr"), ("US", "en"), ("GB", "en")
-    ])
-
-    for country, lang in regions:
-        url = (
-            f"https://store.playstation.com/store/api/chihiro/00_09_000/"
-            f"container/{country}/{lang}/999/{content_id}/image?w=400&h=533"
-        )
-        try:
-            resp = requests.get(url, headers=headers, timeout=8)
-            if resp.status_code == 200 and len(resp.content) > 5000:
-                return resp.content
-        except requests.RequestException:
-            continue
-
-    return None
-
-
-# ------------------------------------------------------------------ #
 #  Thread de chargement asynchrone                                    #
 # ------------------------------------------------------------------ #
 
 class CoverLoaderThread(QThread):
     """
     Charge les jaquettes en arrière-plan.
-    Flow : cache → icon0.png → PS Store
+    Flow : cache disque → icon0.png extrait du PKG
 
     Signaux :
         cover_ready(content_id, cover_path)
@@ -168,31 +120,29 @@ class CoverLoaderThread(QThread):
 
             content_id = pkg.get("content_id", "")
             filepath   = pkg.get("filepath", "")
-            pkg_type   = pkg.get("type", "game")
 
             if not content_id or content_id == "UNKNOWN":
                 continue
 
+            # Ignore les content_id avec suffixe MD5 — ce sont des doublons
+            if "#" in content_id or (
+                len(content_id) > 36 and "_" in content_id[-7:]
+            ):
+                continue
+
             cover_path = None
 
-            # 1. Cache disque
+            # 1. Cache disque — ne retélécharge pas si déjà présent
             cached = get_cached_cover(content_id)
             if cached:
-                cover_path = str(cached)
+                cover_path = str(cached.resolve())
 
             # 2. icon0.png depuis le PKG
-            if not cover_path and filepath:
+            if not cover_path and filepath and Path(filepath).exists():
                 icon_bytes = extract_icon0(filepath)
                 if icon_bytes:
                     saved      = save_cover(content_id, icon_bytes, ".png")
-                    cover_path = str(saved)
-
-            # 3. PS Store (uniquement jeux et backports)
-            if not cover_path and pkg_type in ("game", "backport"):
-                store_bytes = fetch_psstore_cover(content_id)
-                if store_bytes:
-                    saved      = save_cover(content_id, store_bytes, ".jpg")
-                    cover_path = str(saved)
+                    cover_path = str(saved.resolve())
 
             if cover_path:
                 self.cover_ready.emit(content_id, cover_path)
