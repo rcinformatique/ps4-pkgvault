@@ -847,19 +847,22 @@ class MainWindow(QMainWindow):
         if path not in folders:
             return
 
-        # Trouve les PKG manquants dans CE dossier
-        folder_path = Path(path)
-        disk_files = set(str(f) for f in folder_path.rglob("*.pkg"))
+        # Normalise le chemin du dossier
+        path_normalized = Path(path).resolve()
 
-        # PKG en base qui appartiennent à ce dossier
+        # Trouve les PKG manquants dans CE dossier
+        disk_files = set(str(f) for f in path_normalized.rglob("*.pkg"))
+
+        # PKG en base qui appartiennent à ce dossier — comparaison via Path
         folder_pkgs = [
             p for p in self._packages
-            if p.get("filepath", "").startswith(path)
+            if Path(p.get("filepath", "")).resolve().parts[:len(path_normalized.parts)]
+               == path_normalized.parts
         ]
 
         missing = [
             p for p in folder_pkgs
-            if p.get("filepath") not in disk_files
+            if str(Path(p.get("filepath", "")).resolve()) not in disk_files
         ]
 
         # Supprime les manquants
