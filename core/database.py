@@ -105,17 +105,20 @@ class Database:
         genres = json.dumps(pkg_data.get("genres", []), ensure_ascii=False)
         screenshots = json.dumps(pkg_data.get("screenshots", []), ensure_ascii=False)
 
-        # Vérifie si le filepath existe déjà
+        filepath = pkg_data.get("filepath", "")
+        content_id = pkg_data.get("content_id", "UNKNOWN")
+
+        # ── 1. Filepath déjà en base → mise à jour ──────────────────
         existing = self._conn.execute(
             "SELECT id, content_id FROM games WHERE filepath = ?",
-            (pkg_data.get("filepath", ""),)
+            (filepath,)
         ).fetchone()
 
         if existing:
-            # Met à jour par filepath
             self._conn.execute("""
                                UPDATE games
                                SET title        = COALESCE(NULLIF(:title, ''), title),
+                                   content_id   = :content_id,
                                    type         = :type,
                                    category     = :category,
                                    app_ver      = :app_ver,
@@ -127,6 +130,7 @@ class Database:
                                    last_scanned = :last_scanned
                                WHERE filepath = :filepath
                                """, {
+                                   "content_id": content_id,
                                    "title": pkg_data.get("title", ""),
                                    "type": pkg_data.get("type", "game"),
                                    "category": pkg_data.get("category", ""),
@@ -137,23 +141,25 @@ class Database:
                                    "region": pkg_data.get("region", ""),
                                    "languages": languages,
                                    "last_scanned": now,
-                                   "filepath": pkg_data.get("filepath", ""),
+                                   "filepath": filepath,
                                })
             self._conn.commit()
             return existing["id"]
 
-        # Génère un content_id unique si conflit
-        content_id = pkg_data.get("content_id", "UNKNOWN")
+        # ── 2. Conflit content_id → discrimine par filepath hashé ───
         existing_cid = self._conn.execute(
             "SELECT id FROM games WHERE content_id = ?",
             (content_id,)
         ).fetchone()
 
         if existing_cid:
-            # Ajoute le type au content_id pour le rendre unique
-            pkg_type = pkg_data.get("type", "game")
-            content_id = f"{content_id}_{pkg_type.upper()}"
+            # Utilise les 8 derniers chars du filepath comme suffixe
+            # → garde le CUSA lisible, ne casse pas get_game() sur le vrai content_id
+            import hashlib
+            suffix = hashlib.md5(filepath.encode()).hexdigest()[:6]
+            content_id = f"{content_id}#{suffix}"
 
+        # ── 3. Insert ────────────────────────────────────────────────
         cur = self._conn.execute("""
                                  INSERT INTO games (content_id, title, type, category,
                                                     app_ver, version, firmware,
@@ -175,7 +181,7 @@ class Database:
                                      "firmware": pkg_data.get("firmware", ""),
                                      "size_bytes": pkg_data.get("size_bytes", 0),
                                      "size_str": pkg_data.get("size_str", ""),
-                                     "filepath": pkg_data.get("filepath", ""),
+                                     "filepath": filepath,
                                      "filename": pkg_data.get("filename", ""),
                                      "region": pkg_data.get("region", ""),
                                      "languages": languages,
