@@ -233,8 +233,17 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        self._web     = QWebEngineView()
-        self._bridge  = PyBridge(self)
+        self._web = QWebEngineView()
+
+        # Autorise les médias et iframes YouTube
+        settings = self._web.settings()
+        from PyQt6.QtWebEngineCore import QWebEngineSettings
+        settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, True)
+
+        self._bridge = PyBridge(self)
         self._channel = QWebChannel()
         self._channel.registerObject("pybridge", self._bridge)
         self._web.page().setWebChannel(self._channel)
@@ -866,13 +875,14 @@ class MainWindow(QMainWindow):
         self._start_api_worker_manual(unfetched)
 
     def on_refetch_api(self, content_id: str):
-        """Force la re-récupération API pour un jeu spécifique."""
-        rawg_key = self._db.get_setting("rawg_api_key", "")
-        if not rawg_key:
+        igdb_client_id = self._db.get_setting("igdb_client_id", "")
+        igdb_secret = self._db.get_setting("igdb_client_secret", "")
+
+        if not igdb_client_id or not igdb_secret:
             QMessageBox.warning(
                 self,
                 "Clé API manquante",
-                "Configurez votre clé RAWG.io dans Paramètres."
+                "Configurez votre Client ID et Secret IGDB dans Paramètres."
             )
             return
 
@@ -883,7 +893,6 @@ class MainWindow(QMainWindow):
         )
         self._db._conn.commit()
 
-        # Met à jour en mémoire et relance
         for pkg in self._packages:
             if pkg.get("content_id") == content_id:
                 pkg["api_fetched"] = 0
