@@ -1,7 +1,7 @@
 import os
 import subprocess
-import json
-import requests
+import json as _json
+import csv
 from pathlib import Path
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout,
@@ -32,8 +32,6 @@ class ScanThread(QThread):
         self._folders = folders
         self._db      = db
         self._running = True
-        self._refetch_target = None
-
 
     def run(self):
         all_packages = []
@@ -100,10 +98,6 @@ class PyBridge(QObject):
     @pyqtSlot(str)
     def navigate(self, page: str):
         self._win.navigate(page)
-
-    @pyqtSlot(str)
-    def export_library(self, format: str):
-        self._win.on_export_library(format)
 
     @pyqtSlot()
     def go_back(self):
@@ -205,6 +199,10 @@ class PyBridge(QObject):
     def navigate_activity(self, filter_type: str = "all"):
         self._win.navigate("activity")
 
+    @pyqtSlot(str)
+    def export_library(self, format: str):
+        self._win.on_export_library(format)
+
 
 # ------------------------------------------------------------------ #
 #  MainWindow                                                          #
@@ -213,20 +211,22 @@ class PyBridge(QObject):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self._engine        = TemplateEngine()
-        self._db            = Database()
-        self._packages      = []
-        self._active_page   = "library"
-        self._previous_page = "library"
-        self._active_filter = "game"
-        self._active_sort   = "title"
-        self._search_text   = ""
-        self._status_msg    = "Prêt"
-        self._view_mode     = "grid"
-        self._current_theme = "light"
-        self._scan_thread   = None
-        self._cover_thread  = None
-        self._api_thread    = None
+        self._engine          = TemplateEngine()
+        self._db              = Database()
+        self._packages        = []
+        self._active_page     = "library"
+        self._previous_page   = "library"
+        self._active_filter   = "game"
+        self._active_sort     = "title"
+        self._search_text     = ""
+        self._status_msg      = "Prêt"
+        self._view_mode       = "grid"
+        self._current_theme   = "light"
+        self._scan_thread     = None
+        self._cover_thread    = None
+        self._api_thread      = None
+        self._refetch_target  = None
+        self._export_format   = "json"
 
         self._init_window()
         self._init_ui()
@@ -338,7 +338,7 @@ class MainWindow(QMainWindow):
         self._scan_thread.start()
 
     def _on_pkg_scanned(self, pkg_data: dict):
-        import json as _json
+        import json as _j
         from ui.template_engine import TYPE_INFO
 
         filepath_resolved = str(Path(pkg_data.get("filepath", "")).resolve())
@@ -368,7 +368,7 @@ class MainWindow(QMainWindow):
             "screenshots": [],
         }
 
-        pkg_json  = _json.dumps(normalized, ensure_ascii=False)
+        pkg_json  = _j.dumps(normalized, ensure_ascii=False)
         index     = len(self._packages) - 1
         firmware  = pkg_data.get("firmware", "")
         fw_badge  = f'<span class="fw-badge">FW {firmware}</span>' if firmware else ""
@@ -549,103 +549,6 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
     #  Pages                                                               #
     # ------------------------------------------------------------------ #
-
-    def on_export_library(self, format: str):
-        self._export_format = format
-        from PyQt6.QtCore import QTimer
-        QTimer.singleShot(150, self._do_export_library)
-
-    def _do_export_library(self):
-        import csv
-        from PyQt6.QtWidgets import QFileDialog
-
-        format = self._export_format
-
-        if format == "json":
-            default_name = "pkgvault_library.json"
-            file_filter = "JSON (*.json)"
-        else:
-            default_name = "pkgvault_library.csv"
-            file_filter = "CSV (*.csv)"
-
-        path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Exporter la bibliothèque",
-            default_name,
-            file_filter
-        )
-        if not path:
-            return
-
-        packages = self._db.get_all_games()
-
-        try:
-            if format == "json":
-                export_data = []
-                for pkg in packages:
-                    export_data.append({
-                        "title": pkg.get("title_api") or pkg.get("title", ""),
-                        "title_id": pkg.get("title_id", ""),
-                        "content_id": pkg.get("content_id", ""),
-                        "type": pkg.get("type", ""),
-                        "firmware": pkg.get("firmware", ""),
-                        "region": pkg.get("region", ""),
-                        "app_ver": pkg.get("app_ver", ""),
-                        "size_str": pkg.get("size_str", ""),
-                        "size_bytes": pkg.get("size_bytes", 0),
-                        "developer": pkg.get("developer", ""),
-                        "publisher": pkg.get("publisher", ""),
-                        "release_date": pkg.get("release_date", ""),
-                        "genres": pkg.get("genres", []),
-                        "rating": pkg.get("rating", 0),
-                        "filename": pkg.get("filename", ""),
-                        "filepath": pkg.get("filepath", ""),
-                        "date_added": (pkg.get("date_added") or "")[:10],
-                    })
-                with open(path, "w", encoding="utf-8") as f:
-                    _json.dump(export_data, f, ensure_ascii=False, indent=2)
-
-            else:
-                fields = [
-                    "title", "title_id", "content_id", "type",
-                    "firmware", "region", "app_ver", "size_str",
-                    "size_bytes", "developer", "publisher",
-                    "release_date", "genres", "rating",
-                    "filename", "filepath", "date_added",
-                ]
-                with open(path, "w", encoding="utf-8-sig", newline="") as f:
-                    writer = csv.DictWriter(f, fieldnames=fields)
-                    writer.writeheader()
-                    for pkg in packages:
-                        writer.writerow({
-                            "title": pkg.get("title_api") or pkg.get("title", ""),
-                            "title_id": pkg.get("title_id", ""),
-                            "content_id": pkg.get("content_id", ""),
-                            "type": pkg.get("type", ""),
-                            "firmware": pkg.get("firmware", ""),
-                            "region": pkg.get("region", ""),
-                            "app_ver": pkg.get("app_ver", ""),
-                            "size_str": pkg.get("size_str", ""),
-                            "size_bytes": pkg.get("size_bytes", 0),
-                            "developer": pkg.get("developer", ""),
-                            "publisher": pkg.get("publisher", ""),
-                            "release_date": pkg.get("release_date", ""),
-                            "genres": ", ".join(pkg.get("genres", [])),
-                            "rating": pkg.get("rating", 0),
-                            "filename": pkg.get("filename", ""),
-                            "filepath": pkg.get("filepath", ""),
-                            "date_added": (pkg.get("date_added") or "")[:10],
-                        })
-
-            count = len(packages)
-            QMessageBox.information(
-                self,
-                "Export terminé",
-                f"✅ {count} jeux exportés\n{path}"
-            )
-
-        except Exception as e:
-            QMessageBox.critical(self, "Erreur export", str(e))
 
     def _show_library(self):
         pkgs           = self._get_filtered_packages()
@@ -898,11 +801,10 @@ class MainWindow(QMainWindow):
             if (el) el.style.display = 'none';
         """)
         self._status_msg = "✅ Données IGDB récupérées"
-        self._packages = self._db.get_all_games()
+        self._packages   = self._db.get_all_games()
 
-        # Si on vient d'un refetch, retourne sur la page de détail
-        if hasattr(self, '_refetch_target') and self._refetch_target:
-            content_id = self._refetch_target
+        if self._refetch_target:
+            content_id           = self._refetch_target
             self._refetch_target = None
             pkg = self._db.get_game(content_id)
             if pkg:
@@ -970,7 +872,7 @@ class MainWindow(QMainWindow):
 
     def on_refetch_api(self, content_id: str):
         igdb_client_id = self._db.get_setting("igdb_client_id", "")
-        igdb_secret = self._db.get_setting("igdb_client_secret", "")
+        igdb_secret    = self._db.get_setting("igdb_client_secret", "")
 
         if not igdb_client_id or not igdb_secret:
             QMessageBox.warning(
@@ -988,8 +890,7 @@ class MainWindow(QMainWindow):
 
         for pkg in self._packages:
             if pkg.get("content_id") == content_id:
-                pkg["api_fetched"] = 0
-                # Stocke le content_id pour revenir sur le détail après
+                pkg["api_fetched"]   = 0
                 self._refetch_target = content_id
                 self._start_api_worker_manual([pkg])
                 break
@@ -1142,12 +1043,12 @@ class MainWindow(QMainWindow):
 
     def on_save_settings(self, json_str: str):
         try:
-            data = json.loads(json_str)
+            data = _json.loads(json_str)
             for key, value in data.items():
                 self._db.set_setting(key, str(value))
             self._status_msg = "Paramètres sauvegardés"
             self._show_settings()
-        except json.JSONDecodeError:
+        except _json.JSONDecodeError:
             pass
 
     def on_save_theme(self, theme: str):
@@ -1222,6 +1123,99 @@ class MainWindow(QMainWindow):
     def on_clear_activity(self):
         activity.clear()
         self._show_activity()
+
+    def on_export_library(self, format: str):
+        self._export_format = format
+        QTimer.singleShot(150, self._do_export_library)
+
+    def _do_export_library(self):
+        format = self._export_format
+
+        if format == "json":
+            default_name = "pkgvault_library.json"
+            file_filter  = "JSON (*.json)"
+        else:
+            default_name = "pkgvault_library.csv"
+            file_filter  = "CSV (*.csv)"
+
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Exporter la bibliothèque",
+            default_name,
+            file_filter
+        )
+        if not path:
+            return
+
+        packages = self._db.get_all_games()
+
+        try:
+            if format == "json":
+                export_data = []
+                for pkg in packages:
+                    export_data.append({
+                        "title":        pkg.get("title_api") or pkg.get("title", ""),
+                        "title_id":     pkg.get("title_id", ""),
+                        "content_id":   pkg.get("content_id", ""),
+                        "type":         pkg.get("type", ""),
+                        "firmware":     pkg.get("firmware", ""),
+                        "region":       pkg.get("region", ""),
+                        "app_ver":      pkg.get("app_ver", ""),
+                        "size_str":     pkg.get("size_str", ""),
+                        "size_bytes":   pkg.get("size_bytes", 0),
+                        "developer":    pkg.get("developer", ""),
+                        "publisher":    pkg.get("publisher", ""),
+                        "release_date": pkg.get("release_date", ""),
+                        "genres":       pkg.get("genres", []),
+                        "rating":       pkg.get("rating", 0),
+                        "filename":     pkg.get("filename", ""),
+                        "filepath":     pkg.get("filepath", ""),
+                        "date_added":   (pkg.get("date_added") or "")[:10],
+                    })
+                with open(path, "w", encoding="utf-8") as f:
+                    _json.dump(export_data, f, ensure_ascii=False, indent=2)
+
+            else:
+                fields = [
+                    "title", "title_id", "content_id", "type",
+                    "firmware", "region", "app_ver", "size_str",
+                    "size_bytes", "developer", "publisher",
+                    "release_date", "genres", "rating",
+                    "filename", "filepath", "date_added",
+                ]
+                with open(path, "w", encoding="utf-8-sig", newline="") as f:
+                    writer = csv.DictWriter(f, fieldnames=fields)
+                    writer.writeheader()
+                    for pkg in packages:
+                        writer.writerow({
+                            "title":        pkg.get("title_api") or pkg.get("title", ""),
+                            "title_id":     pkg.get("title_id", ""),
+                            "content_id":   pkg.get("content_id", ""),
+                            "type":         pkg.get("type", ""),
+                            "firmware":     pkg.get("firmware", ""),
+                            "region":       pkg.get("region", ""),
+                            "app_ver":      pkg.get("app_ver", ""),
+                            "size_str":     pkg.get("size_str", ""),
+                            "size_bytes":   pkg.get("size_bytes", 0),
+                            "developer":    pkg.get("developer", ""),
+                            "publisher":    pkg.get("publisher", ""),
+                            "release_date": pkg.get("release_date", ""),
+                            "genres":       ", ".join(pkg.get("genres", [])),
+                            "rating":       pkg.get("rating", 0),
+                            "filename":     pkg.get("filename", ""),
+                            "filepath":     pkg.get("filepath", ""),
+                            "date_added":   (pkg.get("date_added") or "")[:10],
+                        })
+
+            count = len(packages)
+            QMessageBox.information(
+                self,
+                "Export terminé",
+                f"✅ {count} jeux exportés\n{path}"
+            )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur export", str(e))
 
     # ------------------------------------------------------------------ #
     #  Fermeture                                                           #
