@@ -124,12 +124,6 @@ class CoverLoaderThread(QThread):
             if not content_id or content_id == "UNKNOWN":
                 continue
 
-            # Ignore les content_id avec suffixe MD5 — ce sont des doublons
-            if "#" in content_id or (
-                len(content_id) > 36 and "_" in content_id[-7:]
-            ):
-                continue
-
             cover_path = None
 
             # 1. Cache disque — ne retélécharge pas si déjà présent

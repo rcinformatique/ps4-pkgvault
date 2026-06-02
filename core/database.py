@@ -259,11 +259,9 @@ class Database:
         ).fetchone()
 
         if existing_cid:
-            # Utilise les 8 derniers chars du filepath comme suffixe
-            # → garde le CUSA lisible, ne casse pas get_game() sur le vrai content_id
             import hashlib
             suffix = hashlib.md5(filepath.encode()).hexdigest()[:6]
-            content_id = f"{content_id}#{suffix}"
+            content_id = f"{content_id}_{suffix}"  # _ au lieu de #
 
         # ── 3. Insert ────────────────────────────────────────────────
         cur = self._conn.execute("""
@@ -333,10 +331,25 @@ class Database:
 
     def update_cover(self, content_id: str, cover_path: str):
         """Met à jour le chemin de la jaquette."""
-        self._conn.execute(
+        # Essaie d'abord par content_id exact
+        affected = self._conn.execute(
             "UPDATE games SET cover_path = ? WHERE content_id = ?",
             (cover_path, content_id)
-        )
+        ).rowcount
+
+        # Si pas trouvé, cherche par content_id de base (sans suffixe MD5)
+        if affected == 0:
+            base_cid = content_id.split("#")[0].rsplit("_", 1)[0] \
+                if ("_" in content_id and len(content_id.split("_")[-1]) == 6) \
+                else content_id
+            self._conn.execute(
+                """UPDATE games
+                   SET cover_path = ?
+                   WHERE content_id LIKE ?
+                     AND (cover_path IS NULL OR cover_path = '')""",
+                (cover_path, f"{base_cid}%")
+            )
+
         self._conn.commit()
 
     def delete_game(self, content_id: str):
