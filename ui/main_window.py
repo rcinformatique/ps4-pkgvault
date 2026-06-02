@@ -722,13 +722,11 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _start_api_worker(self):
-        """Lance la récupération API automatique."""
-        rawg_key       = self._db.get_setting("rawg_api_key", "")
         igdb_client_id = self._db.get_setting("igdb_client_id", "")
-        igdb_secret    = self._db.get_setting("igdb_client_secret", "")
-        auto_fetch     = self._db.get_setting("auto_fetch", "1")
+        igdb_secret = self._db.get_setting("igdb_client_secret", "")
+        auto_fetch = self._db.get_setting("auto_fetch", "1")
 
-        if auto_fetch != "1" or not rawg_key:
+        if auto_fetch != "1" or not igdb_client_id or not igdb_secret:
             return
 
         unfetched = self._db.get_unfetched()
@@ -738,12 +736,10 @@ class MainWindow(QMainWindow):
         self._start_api_worker_manual(unfetched)
 
     def _start_api_worker_manual(self, games: list[dict]):
-        """Lance le worker API avec une liste spécifique."""
-        rawg_key       = self._db.get_setting("rawg_api_key", "")
         igdb_client_id = self._db.get_setting("igdb_client_id", "")
-        igdb_secret    = self._db.get_setting("igdb_client_secret", "")
+        igdb_secret = self._db.get_setting("igdb_client_secret", "")
 
-        if not rawg_key:
+        if not igdb_client_id or not igdb_secret:
             return
 
         if self._api_thread and self._api_thread.isRunning():
@@ -751,10 +747,9 @@ class MainWindow(QMainWindow):
             self._api_thread.wait()
 
         self._api_thread = ApiWorkerThread(
-            games              = games,
-            rawg_api_key       = rawg_key,
-            igdb_client_id     = igdb_client_id,
-            igdb_client_secret = igdb_secret,
+            games=games,
+            igdb_client_id=igdb_client_id,
+            igdb_client_secret=igdb_secret,
         )
         self._api_thread.game_updated.connect(self._on_game_updated)
         self._api_thread.cover_ready.connect(self._on_cover_ready)
@@ -846,13 +841,14 @@ class MainWindow(QMainWindow):
         self._show_library()
 
     def on_fetch_api(self):
-        """Lance la récupération API manuellement."""
-        rawg_key = self._db.get_setting("rawg_api_key", "")
-        if not rawg_key:
+        igdb_client_id = self._db.get_setting("igdb_client_id", "")
+        igdb_secret = self._db.get_setting("igdb_client_secret", "")
+
+        if not igdb_client_id or not igdb_secret:
             QMessageBox.warning(
                 self,
                 "Clé API manquante",
-                "Configurez votre clé RAWG.io dans Paramètres."
+                "Configurez votre Client ID et Secret IGDB dans Paramètres."
             )
             return
 
@@ -865,7 +861,7 @@ class MainWindow(QMainWindow):
             )
             return
 
-        self._status_msg = f"Récupération API — {len(unfetched)} jeux…"
+        self._status_msg = f"Récupération IGDB — {len(unfetched)} jeux…"
         self._show_library()
         self._start_api_worker_manual(unfetched)
 
