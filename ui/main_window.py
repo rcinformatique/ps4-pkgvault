@@ -785,7 +785,6 @@ class MainWindow(QMainWindow):
                     "genres":       api_data.get("genres", []),
                     "rating":       api_data.get("rating", 0),
                     "screenshots":  api_data.get("screenshots", []),
-                    "video_url":    api_data.get("video_url", ""),
                 })
                 break
 

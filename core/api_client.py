@@ -137,11 +137,6 @@ def fetch_igdb_data(
             url = "https:" + s["url"].replace("t_thumb", "t_screenshot_big")
             screenshot_urls.append(url)
 
-        # Vidéo YouTube
-        video_url = ""
-        if game.get("videos"):
-            vid_id    = game["videos"][0].get("video_id", "")
-            video_url = f"https://www.youtube.com/watch?v={vid_id}" if vid_id else ""
 
         # Rating sur 5
         rating = round(game.get("rating", 0) / 20, 1)
@@ -163,7 +158,6 @@ def fetch_igdb_data(
             "rating":          rating,
             "cover_url":       cover_url,
             "screenshot_urls": screenshot_urls,
-            "video_url":       video_url,
             "source":          "IGDB",
         }
 

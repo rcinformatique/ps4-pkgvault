@@ -442,21 +442,6 @@
       </div>
       {% endif %}
 
-      <!-- Vidéo YouTube -->
-      {% if pkg.video_url %}
-      <div class="sc">
-        <div class="sc-head">Vidéo</div>
-        <div class="sc-body">
-          <div class="video-wrap" id="video-container">
-            <div class="video-placeholder" onclick="loadVideo()">
-              <div class="video-play-btn">▶</div>
-              <div class="video-label">Cliquez pour charger la vidéo YouTube</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      {% endif %}
-
       <!-- Screenshots -->
       {% if pkg.screenshots %}
       <div class="sc">
@@ -605,21 +590,5 @@ function onLightboxKey(e) {
   if (e.key === 'Escape')      closeLightbox();
   if (e.key === 'ArrowRight')  lightboxNext();
   if (e.key === 'ArrowLeft')   lightboxPrev();
-}
-
-// ── Vidéo YouTube ───────────────────────────────────────────────────
-function loadVideo() {
-  var url = _pkg.video_url || '';
-  if (!url) return;
-
-  // Extrait le video ID depuis l'URL YouTube
-  var match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  if (!match) return;
-
-  var videoId    = match[1];
-  var container  = document.getElementById('video-container');
-  container.innerHTML =
-    '<iframe src="https://www.youtube.com/embed/' + videoId +
-    '?autoplay=1&rel=0" allow="autoplay; fullscreen" allowfullscreen></iframe>';
 }
 {% endblock %}
