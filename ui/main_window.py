@@ -15,20 +15,22 @@ from core.database import Database
 from core.scanner import scan_folder
 from core.cover_loader import CoverLoaderThread
 from core.api_client import ApiWorkerThread
-
+from core.activity_log import activity, EVENT_SCAN, EVENT_API, EVENT_ERROR
 
 # ------------------------------------------------------------------ #
 #  Thread de scan complet                                              #
 # ------------------------------------------------------------------ #
 
 class ScanThread(QThread):
-    scan_done = pyqtSignal(list, list)
-    progress  = pyqtSignal(int, int)
+    scan_done   = pyqtSignal(list, list)
+    progress    = pyqtSignal(int, int)
+    pkg_scanned = pyqtSignal(dict)  # ← nouveau
 
     def __init__(self, folders: list[str], db: Database, parent=None):
         super().__init__(parent)
         self._folders = folders
         self._db      = db
+        self._running = True
 
     def run(self):
         all_packages = []
@@ -37,11 +39,15 @@ class ScanThread(QThread):
             pkgs, errors = scan_folder(
                 folder,
                 db=self._db,
-                progress_callback=lambda c, t: self.progress.emit(c, t)
+                progress_callback=lambda c, t: self.progress.emit(c, t),
+                pkg_callback=lambda p: self.pkg_scanned.emit(p),  # ← nouveau
             )
             all_packages.extend(pkgs)
             all_errors.extend(errors)
         self.scan_done.emit(all_packages, all_errors)
+
+    def stop(self):
+        self._running = False
 
 
 # ------------------------------------------------------------------ #
@@ -49,25 +55,33 @@ class ScanThread(QThread):
 # ------------------------------------------------------------------ #
 
 class ScanFilesThread(QThread):
-    scan_done = pyqtSignal(list, list)
+    scan_done    = pyqtSignal(list, list)
+    pkg_scanned  = pyqtSignal(dict)  # ← nouveau signal par PKG
 
     def __init__(self, filepaths: list[str], db: Database, parent=None):
         super().__init__(parent)
         self._filepaths = filepaths
         self._db        = db
+        self._running   = True
 
     def run(self):
         from core.pkg_reader import read_pkg
         packages = []
         errors   = []
         for filepath in self._filepaths:
+            if not self._running:
+                break
             result = read_pkg(filepath)
             if result:
                 self._db.upsert_game(result)
                 packages.append(result)
+                self.pkg_scanned.emit(result)  # ← émet chaque PKG
             else:
                 errors.append(filepath)
         self.scan_done.emit(packages, errors)
+
+    def stop(self):
+        self._running = False
 
 
 # ------------------------------------------------------------------ #
@@ -171,6 +185,14 @@ class PyBridge(QObject):
     @pyqtSlot(str)
     def refetch_api(self, content_id: str):
         self._win.on_refetch_api(content_id)
+
+    @pyqtSlot()
+    def clear_activity(self):
+        self._win.on_clear_activity()
+
+    @pyqtSlot(str)
+    def navigate_activity(self, filter_type: str = "all"):
+        self._win.navigate("activity")
 
 
 # ------------------------------------------------------------------ #
@@ -276,14 +298,115 @@ class MainWindow(QMainWindow):
             self._start_cover_loader(self._packages)
 
     def _start_scan_files(self, filepaths: list[str]):
-        """Scanne une liste de fichiers spécifiques."""
         if self._scan_thread and self._scan_thread.isRunning():
             self._scan_thread.quit()
             self._scan_thread.wait()
 
         self._scan_thread = ScanFilesThread(filepaths, self._db)
+        self._scan_thread.pkg_scanned.connect(self._on_pkg_scanned)  # ← nouveau
         self._scan_thread.scan_done.connect(self._on_scan_done)
         self._scan_thread.start()
+
+    def _on_pkg_scanned(self, pkg_data: dict):
+
+        """
+        Appelé pour chaque PKG scanné — ajoute la carte
+        directement dans le DOM sans recharger la page.
+        """
+        activity.log_scan(pkg_data)
+
+        import json as _json
+        from ui.template_engine import TYPE_INFO
+
+        # Ajoute au tableau en mémoire si pas déjà présent
+        exists = any(
+            p.get("filepath") == pkg_data.get("filepath")
+            for p in self._packages
+        )
+        if not exists:
+            self._packages.append(pkg_data)
+
+        # Prépare les données pour le template
+        pkg_type = pkg_data.get("type", "game")
+        info = TYPE_INFO.get(pkg_type, TYPE_INFO["game"])
+        cover = (pkg_data.get("cover_path") or "").replace("\\", "/")
+
+        normalized = {
+            **pkg_data,
+            "type_label": info["label"],
+            "type_icon": info["icon"],
+            "cover_path": cover,
+            "screenshots": [],
+        }
+
+        # Sérialise pour injection JS
+        pkg_json = _json.dumps(normalized, ensure_ascii=False)
+        index = len(self._packages) - 1
+        firmware = pkg_data.get("firmware", "")
+        fw_badge = f'<span class="fw-badge">FW {firmware}</span>' if firmware else ""
+        cover_html = (
+            f'<img src="file:///{cover}" alt="{pkg_data.get("title", "")}" />'
+            if cover else
+            f'<div class="cover-inner">{info["icon"]}</div>'
+        )
+        title = (pkg_data.get("title_api") or pkg_data.get("title") or "").replace("'", "\\'")
+        cid = (pkg_data.get("content_id") or "")[:20]
+        size_str = pkg_data.get("size_str", "")
+        region = pkg_data.get("region", "")
+        pkg_type = pkg_data.get("type", "game")
+
+        js = f"""
+        (function() {{
+            // Met à jour le tableau JS
+            if (typeof _packages !== 'undefined') {{
+                _packages.push({pkg_json});
+            }}
+
+            var grid = document.getElementById('view-grid');
+            var list = document.getElementById('view-list');
+            var empty = document.querySelector('.empty-state');
+
+            // Cache l'état vide
+            if (empty) empty.style.display = 'none';
+
+            // Ajoute dans la grille
+            if (grid) {{
+                grid.style.display = 'grid';
+                var card = document.createElement('div');
+                card.className = 'pkg-card scanning';
+                card.id = 'card-{index}';
+                card.onclick = function() {{ onCardClick({index}); }};
+                card.oncontextmenu = function(e) {{ showCtxMenu(e, {index}); }};
+                card.innerHTML = `
+                    <div class="cover cover-bg-{pkg_type}">
+                        {cover_html}
+                        <span class="type-badge badge-{pkg_type}">{info["label"]}</span>
+                        {fw_badge}
+                    </div>
+                    <div class="card-info">
+                        <div class="card-title">{title}</div>
+                        <div class="card-cid">{cid}</div>
+                        <div class="card-bottom">
+                            <span class="card-size">{size_str}</span>
+                            <span class="card-region">{region}</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+                // Scroll vers la nouvelle carte
+                card.scrollIntoView({{ behavior: 'smooth', block: 'nearest' }});
+            }}
+
+            // Met à jour le statusbar
+            var msg = document.getElementById('sb-msg');
+            if (msg) {{
+                var count = typeof _packages !== 'undefined' ? _packages.length : '';
+                msg.innerHTML = '📦 Scan en cours… ' + count + ' PKG';
+            }}
+        }})();
+        """
+
+        self._web.page().runJavaScript(js)
 
     # ------------------------------------------------------------------ #
     #  Navigation                                                          #
@@ -301,6 +424,37 @@ class MainWindow(QMainWindow):
             self._show_settings()
         elif page == "credits":
             self._show_credits()
+        elif page == "activity":
+            self._show_activity()
+
+    def _show_activity(self):
+        import json as _json
+        events = activity.get_events(limit=300)
+        counts = activity.get_counts()
+
+        # Génère le feed HTML statique (fallback si JS désactivé)
+        # Le JS rerender côté client via _events JSON
+        feed_html = ""  # le JS gère tout
+
+        from core.activity_log import EVENT_SCAN, EVENT_API, EVENT_ERROR
+        events_json = _json.dumps(events, ensure_ascii=False)
+
+        # Charge le template
+        from ui.activity_template import ACTIVITY_TEMPLATE
+        html = ACTIVITY_TEMPLATE
+        html = html.replace("{{ total }}", str(len(events)))
+        html = html.replace("{{ count_scan }}", str(counts.get(EVENT_SCAN, 0)))
+        html = html.replace("{{ count_api }}", str(counts.get(EVENT_API, 0)))
+        html = html.replace("{{ count_error }}", str(counts.get(EVENT_ERROR, 0)))
+        html = html.replace("{{ feed_html }}", feed_html)
+        html = html.replace("{{ events_json }}", events_json)
+        html = html.replace("{{ status_msg }}", self._status_msg)
+
+        self._load_html(html, show_back=False)
+
+    def on_clear_activity(self):
+        activity.clear()
+        self._show_activity()
 
     def go_back(self):
         self.navigate(self._previous_page)
@@ -472,10 +626,15 @@ class MainWindow(QMainWindow):
         self._show_library()
 
         self._scan_thread = ScanThread(folders, self._db)
+        self._scan_thread.pkg_scanned.connect(self._on_pkg_scanned)  # ← nouveau
         self._scan_thread.scan_done.connect(self._on_scan_done)
         self._scan_thread.start()
 
     def _on_scan_done(self, packages: list, errors: list):
+
+        for filepath in errors:
+            activity.log_error(filepath, "Magic inconnu ou SFO introuvable")
+
         self._packages   = self._db.get_all_games()
         count            = len(self._packages)
         self._status_msg = f"{count} PKG chargés"
@@ -551,6 +710,11 @@ class MainWindow(QMainWindow):
         self._api_thread.start()
 
     def _on_game_updated(self, content_id: str, api_data: dict):
+
+        title = api_data.get("title_api", "") or content_id
+        source = api_data.get("source", "RAWG")
+        activity.log_api(title, source=source, content_id=content_id)
+
         self._db.update_api_data(content_id, api_data)
         for pkg in self._packages:
             if pkg.get("content_id") == content_id:

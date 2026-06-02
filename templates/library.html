@@ -6,9 +6,11 @@
   overflow-y: auto;
   padding: 18px 20px;
 }
+
+/* GRILLE */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax({{ card_min_width }}px, 1fr));
   gap: 14px;
 }
 
@@ -107,6 +109,117 @@
 .card-size   { font-size: 11px; color: var(--tm); }
 .card-region { font-size: 10px; color: var(--th); }
 
+/* LISTE */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.list-item {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.list-item:hover { border-color: var(--accent); }
+.list-item.selected { border: 2px solid var(--accent); }
+
+.list-thumb {
+  width: 40px;
+  height: 53px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.list-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.list-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.list-title {
+  flex: 1;
+  min-width: 0;
+}
+.list-title-main {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tp);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-title-sub {
+  font-size: 11px;
+  color: var(--th);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-fw {
+  font-size: 11px;
+  color: var(--tm);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+.list-size {
+  font-size: 11px;
+  color: var(--tm);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 65px;
+  text-align: right;
+}
+.list-region {
+  font-size: 11px;
+  color: var(--th);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 55px;
+  text-align: right;
+}
+
+/* HEADER LISTE */
+.list-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--th);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-l);
+  margin-bottom: 6px;
+}
+.lh-badge  { width: 40px; flex-shrink: 0; }
+.lh-thumb  { width: 40px; flex-shrink: 0; }
+.lh-type   { width: 70px; flex-shrink: 0; }
+.lh-title  { flex: 1; }
+.lh-fw     { min-width: 70px; flex-shrink: 0; }
+.lh-size   { min-width: 65px; flex-shrink: 0; text-align: right; }
+.lh-region { min-width: 55px; flex-shrink: 0; text-align: right; }
+
+/* CONTEXT MENU */
 .ctx-menu {
   position: fixed;
   background: var(--white);
@@ -143,12 +256,30 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.pkg-card.scanning {
+  animation: cardAppear 0.3s ease forwards;
+}
+
 {% endblock %}
 
 {% block content %}
 <div class="grid-scroll">
   {% if packages %}
-  <div class="grid" id="pkg-grid">
+
+  <!-- VUE GRILLE -->
+  <div class="grid" id="view-grid" style="display: {% if view_mode == 'list' %}none{% else %}grid{% endif %};">
     {% for pkg in packages %}
     <div class="pkg-card"
       id="card-{{ loop.index0 }}"
@@ -176,6 +307,50 @@
     </div>
     {% endfor %}
   </div>
+
+  <!-- VUE LISTE -->
+  <div id="view-list" style="display: {% if view_mode == 'list' %}block{% else %}none{% endif %};">
+    <div class="list-header">
+      <div class="lh-thumb"></div>
+      <div class="lh-type">Type</div>
+      <div class="lh-title">Titre</div>
+      <div class="lh-fw">Firmware</div>
+      <div class="lh-size">Taille</div>
+      <div class="lh-region">Région</div>
+    </div>
+    <div class="list-view">
+      {% for pkg in packages %}
+      <div class="list-item"
+        id="list-{{ loop.index0 }}"
+        onclick="onCardClick({{ loop.index0 }})"
+        oncontextmenu="showCtxMenu(event, {{ loop.index0 }})">
+
+        <div class="list-thumb cover-bg-{{ pkg.type }}">
+          {% if pkg.cover_path %}
+            <img src="file:///{{ pkg.cover_path }}" alt="{{ pkg.title }}" />
+          {% else %}
+            {{ pkg.type_icon }}
+          {% endif %}
+        </div>
+
+        <span class="list-badge badge-{{ pkg.type }}">{{ pkg.type_label }}</span>
+
+        <div class="list-title">
+          <div class="list-title-main">{{ pkg.title_api or pkg.title }}</div>
+          <div class="list-title-sub">{{ pkg.content_id }}</div>
+        </div>
+
+        <div class="list-fw">
+          {% if pkg.firmware %}🛡 FW {{ pkg.firmware }}{% else %}—{% endif %}
+        </div>
+        <div class="list-size">{{ pkg.size_str }}</div>
+        <div class="list-region">{{ pkg.region }}</div>
+
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
   {% else %}
   <div class="empty-state">
     <div class="empty-icon">📦</div>
@@ -205,13 +380,16 @@
 var _packages      = {{ packages | tojson }};
 var _ctxIndex      = -1;
 var _selectedIndex = -1;
+var _viewMode      = '{{ view_mode }}';
 
 function onCardClick(index) {
-  document.querySelectorAll('.pkg-card').forEach(function(c) {
+  document.querySelectorAll('.pkg-card, .list-item').forEach(function(c) {
     c.classList.remove('selected');
   });
   var card = document.getElementById('card-' + index);
+  var item = document.getElementById('list-' + index);
   if (card) card.classList.add('selected');
+  if (item) item.classList.add('selected');
   _selectedIndex = index;
   _callBridge(function(b) {
     b.card_clicked(_packages[index].filepath);

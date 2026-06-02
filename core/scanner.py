@@ -6,7 +6,9 @@ def scan_folder(
     folder_path: str | Path,
     db=None,
     progress_callback=None,
+    pkg_callback=None,      # ← nouveau
 ) -> tuple[list[dict], list[str]]:
+
     folder_path = Path(folder_path)
     packages    = []
     errors      = []
@@ -16,28 +18,24 @@ def scan_folder(
 
     pkg_files = sorted(folder_path.rglob("*.pkg"))
     total     = len(pkg_files)
-    print(f"PKG trouvés sur disque : {total}")
 
     for i, pkg_file in enumerate(pkg_files):
         if progress_callback:
             progress_callback(i + 1, total)
 
-        print(f"Lecture : {pkg_file.name}")
         result = read_pkg(pkg_file)
 
         if result is not None:
-            print(f"  ✅ OK — type: {result.get('type')} | title: {result.get('title')}")
             packages.append(result)
             if db:
                 db.upsert_game(result)
                 _auto_link_relations(result, db)
+            if pkg_callback:
+                pkg_callback(result)  # ← émet le PKG immédiatement
         else:
-            print(f"  ❌ ECHEC — fichier ignoré")
             errors.append(str(pkg_file))
 
-    print(f"Total scanné : {len(packages)} OK, {len(errors)} erreurs")
     return packages, errors
-
 
 def _auto_link_relations(pkg_data: dict, db):
     """

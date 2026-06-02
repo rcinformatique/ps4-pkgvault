@@ -1,0 +1,270 @@
+"""
+ui/activity_template.py
+Template de l'onglet Activité — design PKGVault (clair, Windows 11 style)
+"""
+
+ACTIVITY_TEMPLATE = """
+{% extends "base.html" %}
+
+{% block extra_styles %}
+.activity-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.activity-wrap::-webkit-scrollbar { width: 5px; }
+.activity-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Compteurs dans la subbar */
+.act-counters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.act-chip {
+  font-size: 11px;
+  padding: 3px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-s);
+  color: var(--ts);
+  cursor: pointer;
+  background: var(--white);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.act-chip:hover { border-color: var(--accent); color: var(--accent); }
+.act-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+.act-chip.chip-scan.active  { background: #107c10; border-color: #107c10; }
+.act-chip.chip-api.active   { background: #0067c0; border-color: #0067c0; }
+.act-chip.chip-error.active { background: #e05a5a; border-color: #e05a5a; }
+
+.btn-clear-act {
+  font-size: 11px;
+  color: var(--ts);
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 4px 12px;
+  cursor: pointer;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin-left: auto;
+  transition: all 0.15s;
+}
+.btn-clear-act:hover { border-color: var(--error); color: var(--error); background: #fff5f5; }
+
+/* Séparateur de date */
+.date-sep {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--th);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 14px 4px 6px;
+}
+
+/* Ligne d'événement */
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  transition: background 0.1s;
+  border-bottom: 1px solid var(--border-l);
+}
+.event-row:last-child { border-bottom: none; }
+.event-row:hover { background: var(--hover); }
+
+.event-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-scan  { background: #107c10; }
+.dot-api   { background: #0067c0; }
+.dot-error { background: #e05a5a; }
+
+.event-icon {
+  font-size: 15px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.event-body { flex: 1; min-width: 0; }
+.event-msg {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tp);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.event-detail {
+  font-size: 11px;
+  color: var(--tm);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.badge-scan  { background: #e6f4ea; color: #107c10; }
+.badge-api   { background: var(--accent-l); color: var(--accent); }
+.badge-error { background: #fff5f5; color: var(--error); }
+
+.event-time {
+  font-size: 11px;
+  color: var(--th);
+  flex-shrink: 0;
+  min-width: 38px;
+  text-align: right;
+}
+
+/* Empty */
+.act-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px;
+  color: var(--tm);
+}
+.act-empty-icon { font-size: 48px; opacity: 0.35; }
+.act-empty-title { font-size: 15px; font-weight: 600; color: var(--tm); }
+.act-empty-sub { font-size: 12px; color: var(--th); }
+{% endblock %}
+
+{% block content %}
+<!-- Subbar Activité -->
+<div class="subbar">
+  <div class="act-counters">
+    <button class="act-chip active" id="chip-all" onclick="setFilter('all')">
+      Tout · <span id="cnt-all">0</span>
+    </button>
+    <button class="act-chip chip-scan" id="chip-scan" onclick="setFilter('scan')">
+      📦 Scans · <span id="cnt-scan">0</span>
+    </button>
+    <button class="act-chip chip-api" id="chip-api" onclick="setFilter('api')">
+      🌐 API · <span id="cnt-api">0</span>
+    </button>
+    <button class="act-chip chip-error" id="chip-error" onclick="setFilter('error')">
+      ❌ Erreurs · <span id="cnt-error">0</span>
+    </button>
+  </div>
+  <button class="btn-clear-act" onclick="clearLog()">🗑 Vider</button>
+</div>
+
+<div class="activity-wrap" id="feed"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+var _events = {{ events_json }};
+var _counts = {{ counts_json }};
+var _filter = 'all';
+
+// Init compteurs
+document.getElementById('cnt-all').textContent   = _events.length;
+document.getElementById('cnt-scan').textContent  = _counts.scan  || 0;
+document.getElementById('cnt-api').textContent   = _counts.api   || 0;
+document.getElementById('cnt-error').textContent = _counts.error || 0;
+
+var ICONS  = { scan: '📦', api: '🌐', error: '❌' };
+var LABELS = { scan: 'Scan', api: 'API', error: 'Erreur' };
+
+function setFilter(type) {
+  _filter = type;
+  ['all','scan','api','error'].forEach(function(t) {
+    var el = document.getElementById('chip-' + t);
+    if (el) el.classList.toggle('active', t === type);
+  });
+  renderFeed();
+}
+
+function renderFeed() {
+  var feed   = document.getElementById('feed');
+  var events = _filter === 'all'
+    ? _events
+    : _events.filter(function(e) { return e.type === _filter; });
+
+  if (!events.length) {
+    feed.innerHTML =
+      '<div class="act-empty">' +
+      '<div class="act-empty-icon">📭</div>' +
+      '<div class="act-empty-title">Aucune activité</div>' +
+      '<div class="act-empty-sub">Les scans, appels API et erreurs apparaîtront ici.</div>' +
+      '</div>';
+    return;
+  }
+
+  var html     = '';
+  var lastDate = '';
+
+  events.forEach(function(e) {
+    var date = (e.timestamp || '').substring(0, 10);
+    var time = (e.timestamp || '').substring(11, 16);
+
+    if (date !== lastDate) {
+      html    += '<div class="date-sep">' + fmtDate(date) + '</div>';
+      lastDate = date;
+    }
+
+    html += '<div class="event-row">';
+    html +=   '<div class="event-dot dot-' + e.type + '"></div>';
+    html +=   '<div class="event-icon">' + (ICONS[e.type] || '•') + '</div>';
+    html +=   '<div class="event-body">';
+    html +=     '<div class="event-msg">'    + esc(e.message) + '</div>';
+    if (e.detail) {
+    html +=     '<div class="event-detail">' + esc(e.detail)  + '</div>';
+    }
+    html +=   '</div>';
+    html +=   '<span class="event-badge badge-' + e.type + '">' + (LABELS[e.type] || e.type) + '</span>';
+    html +=   '<div class="event-time">' + time + '</div>';
+    html += '</div>';
+  });
+
+  feed.innerHTML = html;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  var today = new Date().toISOString().substring(0,10);
+  var yest  = new Date(Date.now() - 86400000).toISOString().substring(0,10);
+  if (iso === today) return "Aujourd'hui";
+  if (iso === yest)  return 'Hier';
+  return iso;
+}
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function clearLog() {
+  if (confirm("Vider tout le journal d'activité ?")) {
+    _callBridge(function(b) { b.clear_activity(); });
+  }
+}
+
+renderFeed();
+{% endblock %}
+"""
