@@ -349,9 +349,7 @@ html, body {
 
     <div class="search-wrap">
       <span style="color:var(--th); font-size:14px;">🔍</span>
-      <input type="text" id="search-input"
-        placeholder="Rechercher un titre, CUSA…"
-        oninput="_callBridge(function(b){ b.search(document.getElementById('search-input').value); })" />
+      <input type="text" id="search-input" placeholder="Rechercher un titre, CUSA…" oninput="onSearchInput(this.value)" />
     </div>
 
     <button id="btn-fetch-api"

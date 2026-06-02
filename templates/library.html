@@ -331,6 +331,7 @@
 
 {% block extra_scripts %}
 var _packages      = {{ packages | tojson }};
+var _filteredPackages = _packages;  // ← ajoute cette ligne
 var _ctxIndex      = -1;
 var _selectedIndex = -1;
 var _viewMode      = '{{ view_mode }}';
@@ -340,7 +341,7 @@ var _PAGE_SIZE  = 50;
 var _loadedUp   = 0;  // nombre de cartes déjà rendues
 
 function _renderNextBatch() {
-    var batch = _packages.slice(_loadedUp, _loadedUp + _PAGE_SIZE);
+    var batch = _filteredPackages.slice(_loadedUp, _loadedUp + _PAGE_SIZE);
     if (!batch.length) return;
 
     var grid = document.getElementById('view-grid');
@@ -415,7 +416,7 @@ function _renderNextBatch() {
     // Met à jour le sentinel — s'il n'y a plus rien, on le retire
     var sentinel = document.getElementById('scroll-sentinel');
     if (sentinel) {
-        sentinel.style.display = _loadedUp >= _packages.length ? 'none' : 'block';
+        sentinel.style.display = _loadedUp >= _filteredPackages.length ? 'none' : 'block';
     }
 }
 
@@ -467,6 +468,35 @@ function showCtxMenu(e, index) {
     menu.style.left = e.clientX + 'px';
     menu.style.top  = e.clientY + 'px';
     menu.classList.add('visible');
+}
+
+function onSearchInput(text) {
+    var q = text.toLowerCase().trim();
+
+    // Filtre côté JS sans recharger la page
+    var filtered = q === ''
+        ? _packages
+        : _packages.filter(function(p) {
+            return (p.title       || '').toLowerCase().includes(q)
+                || (p.title_api  || '').toLowerCase().includes(q)
+                || (p.content_id || '').toLowerCase().includes(q)
+                || (p.title_id   || '').toLowerCase().includes(q)
+                || (p.filename   || '').toLowerCase().includes(q);
+        });
+
+    // Remet à zéro le scroll infini avec les résultats filtrés
+    _filteredPackages = filtered;
+    _loadedUp = 0;
+
+    var grid = document.getElementById('view-grid');
+    var list = document.getElementById('view-list-body');
+    if (grid) grid.innerHTML = '';
+    if (list) list.innerHTML = '';
+
+    _renderNextBatch();
+
+    // Sync avec Python pour le tri/filtre côté serveur si besoin
+    _callBridge(function(b) { b.search(text); });
 }
 
 function ctxAction(action) {

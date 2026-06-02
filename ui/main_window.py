@@ -776,7 +776,7 @@ class MainWindow(QMainWindow):
 
     def on_search(self, text: str):
         self._search_text = text
-        self._show_library()
+        # self._show_library()
 
     def on_filter(self, key: str):
         self._active_filter = key
