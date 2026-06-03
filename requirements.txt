@@ -11,3 +11,10 @@ PyQt6-WebEngine-Qt6==6.11.1
 PyQt6_sip==13.11.1
 requests==2.34.2
 urllib3==2.7.0
+altgraph==0.17.5
+packaging==26.2
+pefile==2024.8.26
+pyinstaller==6.20.0
+pyinstaller-hooks-contrib==2026.5
+pywin32-ctypes==0.2.3
+setuptools==82.0.1

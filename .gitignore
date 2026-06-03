@@ -4,8 +4,6 @@ __pycache__/
 *.pyo
 *.pyd
 *.egg-info/
-build/
-dist/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -39,6 +37,15 @@ assets/covers/
 assets/screenshots/
 assets/json/
 assets/pkg_images/
+
+# Journal d'activité (contient des chemins locaux)
+data/activity.json
+
+# PyInstaller
+build/
+dist/
+*.spec.bak
+*.manifest
 
 # Logs / temporary files
 *.log
