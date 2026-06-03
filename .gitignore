@@ -24,6 +24,10 @@ ENV/
 .env.*
 *.local
 
+# Garder le dossier data mais ignorer les données générées
+data/*.json
+!data/.gitkeep
+
 # Runtime database and generated files
 *.db
 *.sqlite
