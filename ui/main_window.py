@@ -551,24 +551,24 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def _show_library(self):
-        pkgs           = self._get_filtered_packages()
-        stats          = self._get_stats()
-        total          = len(pkgs)
-        size           = stats.get("total_size", "0 Go")
-        count_str      = f"{total} fichier{'s' if total > 1 else ''} · {size}"
+        pkgs = self._packages  # ← TOUS les packages, pas filtrés
+        stats = self._get_stats()
+        total = len(pkgs)
+        size = stats.get("total_size", "0 Go")
+        count_str = f"{total} fichier{'s' if total > 1 else ''} · {size}"
         card_min_width = int(self._db.get_setting("card_min_width", "180"))
 
         html = self._engine.render_library(
-            packages        = pkgs,
-            stats           = stats,
-            active_filter   = self._active_filter,
-            active_sort     = self._active_sort,
-            status_msg      = self._status_msg,
-            count_str       = count_str,
-            view_mode       = self._view_mode,
-            card_min_width  = card_min_width,
-            theme           = self._get_theme(),
-            search_text     = self._search_text,
+            packages=pkgs,
+            stats=stats,
+            active_filter=self._active_filter,
+            active_sort=self._active_sort,
+            status_msg=self._status_msg,
+            count_str=count_str,
+            view_mode=self._view_mode,
+            card_min_width=card_min_width,
+            theme=self._get_theme(),
+            search_text=self._search_text,
         )
         self._load_html(html, show_back=False)
 

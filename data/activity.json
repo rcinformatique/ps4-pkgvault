@@ -286,5 +286,53 @@
       "pkg_type": "update",
       "filepath": "F:\\PS4 JailBreak\\Games\\Uncharted 4 A Thiefs End\\Update\\Uncharted.4.A.Thiefs.End.Update.v1.32.PS4-DUPLEX.pkg"
     }
+  },
+  {
+    "type": "scan",
+    "message": "Red Dead Redemption 2: Pre-Order Bonuses",
+    "detail": "DLC · CUSA08519 · 1.1 Mo",
+    "filename": "cusa08519_red_dead_redemption_2_preorder_bonus_dlc_fxd.pkg",
+    "timestamp": "2026-06-03T04:53:35",
+    "extra": {
+      "title_id": "CUSA08519",
+      "pkg_type": "dlc",
+      "filepath": "f:\\ps4 jailbreak\\games\\red dead redemption 2\\dlc\\cusa08519_red_dead_redemption_2_preorder_bonus_dlc_fxd.pkg"
+    }
+  },
+  {
+    "type": "scan",
+    "message": "Red Dead Redemption 2: Special Edition Content",
+    "detail": "DLC · CUSA08519 · 1.1 Mo",
+    "filename": "cusa08519_red_dead_redemption_2_special_edition_content_dlc_fxd.pkg",
+    "timestamp": "2026-06-03T04:53:35",
+    "extra": {
+      "title_id": "CUSA08519",
+      "pkg_type": "dlc",
+      "filepath": "f:\\ps4 jailbreak\\games\\red dead redemption 2\\dlc\\cusa08519_red_dead_redemption_2_special_edition_content_dlc_fxd.pkg"
+    }
+  },
+  {
+    "type": "scan",
+    "message": "Red Dead Redemption 2",
+    "detail": "Jeu · CUSA08519 · 79.4 Go",
+    "filename": "[spsx]-red.dead.redemption.2_cusa08519_v1.00_[6.72]_opoisso893.pkg",
+    "timestamp": "2026-06-03T04:53:35",
+    "extra": {
+      "title_id": "CUSA08519",
+      "pkg_type": "game",
+      "filepath": "f:\\ps4 jailbreak\\games\\red dead redemption 2\\game\\[spsx]-red.dead.redemption.2_cusa08519_v1.00_[6.72]_opoisso893.pkg"
+    }
+  },
+  {
+    "type": "scan",
+    "message": "Red Dead Redemption 2",
+    "detail": "Mise à jour · CUSA08519 · 19.2 Go",
+    "filename": "cusa08519_v1.32_[6.72]_opoisso893-[dlpsgame.com].pkg",
+    "timestamp": "2026-06-03T04:53:35",
+    "extra": {
+      "title_id": "CUSA08519",
+      "pkg_type": "update",
+      "filepath": "f:\\ps4 jailbreak\\games\\red dead redemption 2\\update\\cusa08519_v1.32_[6.72]_opoisso893-[dlpsgame.com].pkg"
+    }
   }
 ]
