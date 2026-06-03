@@ -367,7 +367,7 @@ html, body {
 
     <div class="search-wrap">
       <span style="color:var(--th); font-size:14px;">🔍</span>
-      <input type="text" id="search-input" placeholder="Rechercher un titre, CUSA…" oninput="onSearchInput(this.value)" />
+      <input type="text" id="search-input" placeholder="Rechercher un titre, CUSA…" value="{{ search_text }}" oninput="onSearchInput(this.value)"  />
     </div>
 
     <button id="btn-theme"
@@ -645,7 +645,7 @@ function onSearchInput(text) {
   var filtered = q === ''
     ? _packages
     : _packages.filter(function(p) {
-        return (p.title       || '').toLowerCase().includes(q)
+        return (p.title      || '').toLowerCase().includes(q)
             || (p.title_api  || '').toLowerCase().includes(q)
             || (p.content_id || '').toLowerCase().includes(q)
             || (p.title_id   || '').toLowerCase().includes(q)
@@ -655,14 +655,21 @@ function onSearchInput(text) {
   if (typeof _filteredPackages !== 'undefined') {
     _filteredPackages = filtered;
     _loadedUp = 0;
+
     var grid = document.getElementById('view-grid');
     var list = document.getElementById('view-list-body');
+
     if (grid) grid.innerHTML = '';
     if (list) list.innerHTML = '';
-    if (typeof _renderNextBatch === 'function') _renderNextBatch();
+
+    if (typeof _renderNextBatch === 'function') {
+      _renderNextBatch();
+    }
   }
 
-  _callBridge(function(b) { b.search(text); });
+  // Important :
+  // On ne rappelle pas Python ici, sinon toute la page se recharge
+  // et la barre de recherche perd le focus.
 }
 
 function showExportMenu() {
