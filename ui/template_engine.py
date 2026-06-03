@@ -53,6 +53,7 @@ def _normalize_pkg(pkg: dict) -> dict:
         "screenshots": screenshots,
     }
 
+from pathlib import Path
 
 def _base_context(
     active_page: str,
@@ -64,6 +65,10 @@ def _base_context(
     view_mode: str = "grid",
     theme: str = "light",
 ) -> dict:
+    fa_path = str(
+        Path(__file__).parent.parent / "assets" / "fontawesome" / "css" / "all.min.css"
+    ).replace("\\", "/")
+
     s = stats or DEFAULT_STATS
     return {
         "active_page":   active_page,
@@ -73,6 +78,7 @@ def _base_context(
         "status_msg":    status_msg,
         "view_mode":     view_mode,
         "theme":         theme,
+        "fa_path":       fa_path,
         "stats": {
             "game":       s.get("game",       0),
             "dlc":        s.get("dlc",        0),

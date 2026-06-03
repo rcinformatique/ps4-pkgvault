@@ -76,7 +76,6 @@ def fetch_igdb_data(
     }
 
     try:
-        # Recherche principale
         resp = requests.post(
             "https://api.igdb.com/v4/games",
             headers=headers,
@@ -99,7 +98,6 @@ def fetch_igdb_data(
         if resp.status_code != 200 or not resp.json():
             return None
 
-        # Prend le premier résultat PS4 si possible
         results = resp.json()
         game    = None
         for r in results:
@@ -110,10 +108,8 @@ def fetch_igdb_data(
         if not game:
             game = results[0]
 
-        # Genres
         genres = [g["name"] for g in game.get("genres", [])]
 
-        # Dev / Publisher
         developer = ""
         publisher = ""
         for ic in game.get("involved_companies", []):
@@ -124,24 +120,19 @@ def fetch_igdb_data(
             if ic.get("publisher") and not publisher:
                 publisher = name
 
-        # Cover HD
         cover_url = ""
         if game.get("cover"):
             cover_url = "https:" + game["cover"]["url"].replace(
                 "t_thumb", "t_cover_big"
             )
 
-        # Screenshots HD
         screenshot_urls = []
         for s in game.get("screenshots", [])[:6]:
             url = "https:" + s["url"].replace("t_thumb", "t_screenshot_big")
             screenshot_urls.append(url)
 
-
-        # Rating sur 5
         rating = round(game.get("rating", 0) / 20, 1)
 
-        # Date de sortie
         release_ts   = game.get("first_release_date", 0)
         release_date = ""
         if release_ts:
@@ -171,7 +162,8 @@ def fetch_igdb_data(
 
 class ApiWorkerThread(QThread):
     """
-    Récupère les données IGDB pour les jeux non encore traités.
+    Récupère les données IGDB pour les jeux BASE uniquement,
+    puis propage les infos (description, genres, jaquette) aux DLC liés.
 
     Signaux :
         game_updated(content_id, api_data)
@@ -214,9 +206,18 @@ class ApiWorkerThread(QThread):
             self.finished_all.emit()
             return
 
-        total = len(self._games)
+        # Sépare les jeux BASE/BACKPORT des DLC/UPDATE
+        base_games = [
+            g for g in self._games
+            if g.get("type") == "game"
+        ]
+        total = len(base_games)
 
-        for i, game in enumerate(self._games):
+        # Cache des données récupérées par content_id BASE
+        # pour propager aux DLC après
+        fetched_base: dict[str, dict] = {}
+
+        for i, game in enumerate(base_games):
             if not self._running:
                 break
 
@@ -224,12 +225,8 @@ class ApiWorkerThread(QThread):
 
             content_id = game.get("content_id", "")
             title      = game.get("title_api") or game.get("title", "")
-            pkg_type   = game.get("type", "game")
 
             if not content_id or content_id == "UNKNOWN":
-                continue
-
-            if pkg_type not in ("game", "backport"):
                 continue
 
             self.status_message.emit(f"IGDB : {title[:40]}…")
@@ -278,11 +275,93 @@ class ApiWorkerThread(QThread):
 
             if api_data:
                 self.game_updated.emit(content_id, api_data)
+                fetched_base[content_id] = {
+                    "api_data":   api_data,
+                    "cover_path": cover_path,
+                }
 
             time.sleep(API_DELAY)
 
+        # ── Propagation aux DLC liés ─────────────────────────────
+        if fetched_base and self._running:
+            self._propagate_to_dlc(fetched_base)
+
         self.status_message.emit("✅ Données IGDB récupérées")
         self.finished_all.emit()
+
+    def _propagate_to_dlc(self, fetched_base: dict):
+        """
+        Propage jaquette, description et genres du jeu BASE
+        vers tous ses DLC liés qui n'ont pas encore de données API.
+
+        Utilise le CUSA commun entre le content_id BASE et le DLC
+        pour faire le lien sans accès à la base de données.
+        """
+        # Index CUSA → données BASE
+        cusa_to_base: dict[str, dict] = {}
+        for base_cid, data in fetched_base.items():
+            cusa = self._extract_cusa(base_cid)
+            if cusa:
+                cusa_to_base[cusa] = {**data, "base_content_id": base_cid}
+
+        if not cusa_to_base:
+            return
+
+        # DLC et updates dans la liste originale
+        related_games = [
+            g for g in self._games
+            if g.get("type") == "dlc"
+            and not g.get("api_fetched")
+        ]
+
+        propagated = 0
+        for dlc in related_games:
+            if not self._running:
+                break
+
+            dlc_cid = dlc.get("content_id", "")
+            cusa    = self._extract_cusa(dlc_cid)
+            if not cusa or cusa not in cusa_to_base:
+                continue
+
+            base_data  = cusa_to_base[cusa]
+            api_data   = base_data["api_data"]
+            cover_path = base_data["cover_path"]
+
+            # Données héritées — on garde le titre du DLC
+            inherited = {
+                "title_api":    dlc.get("title_api") or dlc.get("title", ""),
+                "description":  api_data.get("description", ""),
+                "developer":    api_data.get("developer", ""),
+                "publisher":    api_data.get("publisher", ""),
+                "release_date": api_data.get("release_date", ""),
+                "genres":       api_data.get("genres", []),
+                "rating":       api_data.get("rating", 0),
+                "screenshots":  [],   # pas de screenshots pour les DLC
+                "video_url":    "",
+                "source":       "inherited",
+            }
+
+            self.game_updated.emit(dlc_cid, inherited)
+
+            # Partage la même jaquette que le jeu BASE
+            if cover_path:
+                self.cover_ready.emit(dlc_cid, cover_path)
+
+            propagated += 1
+
+        if propagated:
+            self.status_message.emit(
+                f"✅ {propagated} DLC/Update mis à jour depuis le jeu BASE"
+            )
+
+    @staticmethod
+    def _extract_cusa(content_id: str) -> str:
+        """Extrait le code CUSA depuis un content_id."""
+        for part in content_id.replace("-", "_").split("_"):
+            if part.startswith(("CUSA", "CUSE")):
+                return part
+        return ""
 
     def stop(self):
         self._running = False

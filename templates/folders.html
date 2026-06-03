@@ -30,7 +30,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 20px;
+  color: var(--accent);
   flex-shrink: 0;
 }
 
@@ -53,7 +54,11 @@
   background: var(--input);
   border: 1px solid var(--border);
   color: var(--ts);
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
+.folder-pill i { font-size: 10px; }
 
 .folder-actions {
   display: flex;
@@ -97,7 +102,9 @@
   {% if folders %}
     {% for folder in folders %}
     <div class="folder-card">
-      <div class="folder-icon">📁</div>
+      <div class="folder-icon">
+        <i class="fa-solid fa-folder"></i>
+      </div>
       <div class="folder-info">
         <div class="folder-path" title="{{ folder.path }}">{{ folder.path }}</div>
         <div class="folder-meta">
@@ -105,34 +112,34 @@
           {% if folder.date_added %} · Ajouté le {{ folder.date_added }}{% endif %}
         </div>
         <div class="folder-pills">
-          <span class="folder-pill">🎮 {{ folder.game }} Jeux</span>
-          <span class="folder-pill">🧩 {{ folder.dlc }} DLC</span>
-          <span class="folder-pill">⬆ {{ folder['update'] }} Updates</span>
-          <span class="folder-pill">⏮ {{ folder.backport }} Backports</span>
+          <span class="folder-pill"><i class="fa-solid fa-gamepad"></i> {{ folder.game }} Jeux</span>
+          <span class="folder-pill"><i class="fa-solid fa-puzzle-piece"></i> {{ folder.dlc }} DLC</span>
+          <span class="folder-pill"><i class="fa-solid fa-arrow-up"></i> {{ folder['update'] }} Updates</span>
+          <span class="folder-pill"><i class="fa-solid fa-clock-rotate-left"></i> {{ folder.backport }} Backports</span>
         </div>
       </div>
       <div class="folder-actions">
         <div class="folder-size">{{ folder.size_str }}</div>
         <button class="btn btn-secondary" onclick="rescanFolder({{ loop.index0 }})">
-          🔄 Rescanner
+          <i class="fa-solid fa-rotate"></i> Rescanner
         </button>
         <button class="btn btn-danger" onclick="deleteFolder({{ loop.index0 }})">
-          🗑️ Retirer
+          <i class="fa-solid fa-trash"></i> Retirer
         </button>
       </div>
     </div>
     {% endfor %}
   {% else %}
     <div class="empty-state">
-      <div class="empty-icon">📁</div>
+      <div class="empty-icon"><i class="fa-solid fa-folder-open" style="font-size:64px; color:var(--th);"></i></div>
       <div class="empty-title">Aucun dossier ajouté</div>
-      <div class="empty-sub">Cliquez sur ➕ Ajouter un dossier pour commencer</div>
+      <div class="empty-sub">Cliquez sur <i class="fa-solid fa-plus"></i> Ajouter un dossier pour commencer</div>
     </div>
   {% endif %}
 
   <div class="add-folder-card"
     onclick="_callBridge(function(b){ b.add_folder(); })">
-    ➕ Ajouter un dossier PKG
+    <i class="fa-solid fa-plus"></i> Ajouter un dossier PKG
   </div>
 
 </div>

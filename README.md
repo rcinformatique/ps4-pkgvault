@@ -15,15 +15,22 @@ avec une interface moderne inspirée du Microsoft Store / Windows 11.
 - Scan récursif de dossiers PKG
 - Lecture directe des métadonnées depuis le fichier `param.sfo` embarqué dans chaque PKG
 - Détection automatique du type : BASE / DLC / UPDATE / BACKPORT
-- Affichage en grille 4 colonnes avec jaquettes HD
+- Affichage en grille avec jaquettes HD (taille configurable)
 - Extraction automatique de `icon0.png` depuis le PKG
-- Téléchargement de jaquettes via PS Store et IGDB dans l’application principale
+- Récupération automatique des métadonnées via **IGDB** (jeux BASE uniquement)
+- Propagation automatique des données IGDB aux DLC liés via le CUSA commun
+- Jaquettes officielles via **PlayStation Store**
 - Base de données SQLite locale (persistance entre sessions)
-- Page de détail complète : description, genres, screenshots, langues, firmware
+- Page de détail complète : description, genres, screenshots, langues, firmware, contenu associé
 - Relations automatiques jeu BASE ↔ DLC ↔ UPDATE
 - Recherche et filtres par type
 - Menu contextuel : ouvrir dossier, copier chemin, renommer, supprimer
 - Vue liste triable (alternative à la grille)
+- Thème clair / sombre
+- Menu hamburger responsive en petite fenêtre
+- Export de la bibliothèque en JSON ou CSV
+- Journal d'activité (scans, appels API, erreurs)
+- Icônes **Font Awesome 6 Free** intégrées en local
 
 ---
 
@@ -33,12 +40,16 @@ avec une interface moderne inspirée du Microsoft Store / Windows 11.
 |---|---|---|
 | Python | 3.13+ | Langage principal |
 | PyQt6 | 6.x | Interface graphique |
+| QWebEngine | 6.x | Rendu HTML/CSS des templates |
 | SQLite | 3.x | Base de données locale |
-| Pillow | 10.x | Traitement des images |
+| Jinja2 | 3.x | Moteur de templates HTML |
+| Pillow | 12.x | Traitement des images |
 | Requests | 2.x | Appels API HTTP |
-| IGDB API | v4 | Métadonnées des jeux dans l’application principale |
-| RAWG API | v2 | Métadonnées via l’outil CLI `tools/api_pkg.py` |
+| IGDB API | v4 | Métadonnées des jeux |
+| Twitch OAuth | v2 | Authentification IGDB |
 | PS Store API | — | Jaquettes officielles |
+| Font Awesome | 6 Free | Icônes de l'interface |
+| PyInstaller | 6.x | Compilation en .exe |
 
 ---
 
@@ -53,19 +64,42 @@ avec une interface moderne inspirée du Microsoft Store / Windows 11.
 ### Étapes
 
 ```bash
-# 1. Cloner ou télécharger le projet
-cd PKGVault
+# 1. Cloner le dépôt
+git clone https://github.com/rcinformatique/ps4-pkgvault.git
+cd ps4-pkgvault
 
 # 2. Créer un environnement virtuel
 python -m venv venv
 venv\Scripts\activate
 
 # 3. Installer les dépendances
-pip install PyQt6 requests Pillow
+pip install -r requirements.txt
 
 # 4. Lancer l'application
 python main.py
 ```
+
+### Font Awesome (requis)
+
+Télécharger **Font Awesome 6 Free for Web** sur [fontawesome.com/download](https://fontawesome.com/download) et placer les fichiers dans :
+
+```
+assets/
+└── fontawesome/
+    ├── css/
+    │   └── all.min.css
+    └── webfonts/
+        ├── fa-solid-900.woff2
+        ├── fa-regular-400.woff2
+        ├── fa-brands-400.woff2
+        └── (autres fichiers .woff2)
+```
+
+### Configuration IGDB
+
+1. Créer un compte sur [dev.twitch.tv](https://dev.twitch.tv)
+2. Enregistrer une application → copier le **Client ID** et le **Client Secret**
+3. Renseigner les identifiants dans **Paramètres → APIs & Données**
 
 ---
 
@@ -74,7 +108,10 @@ python main.py
 ```
 PKGVault/
 ├── assets/
-│   └── icons/              ← Icône de l'application
+│   ├── icons/              ← Icône de l'application
+│   └── fontawesome/        ← Font Awesome 6 Free (local)
+│       ├── css/
+│       └── webfonts/
 ├── cache/
 │   ├── covers/             ← Jaquettes téléchargées
 │   └── screenshots/        ← Screenshots téléchargés
@@ -86,27 +123,45 @@ PKGVault/
 │   ├── database.py         ← Base de données SQLite
 │   ├── settings.py         ← Persistance des préférences
 │   ├── cover_loader.py     ← Extraction icon0.png
-│   └── api_client.py       ← IGDB pour les métadonnées
+│   ├── api_client.py       ← IGDB + propagation DLC
+│   └── activity_log.py     ← Journal d'activité
+├── data/
+│   └── activity.json       ← Historique des événements (généré)
+├── templates/
+│   ├── base.html           ← Layout principal + topbar responsive
+│   ├── library.html        ← Grille / liste des PKG
+│   ├── detail.html         ← Page de détail d'un PKG
+│   ├── folders.html        ← Gestion des dossiers
+│   ├── settings.html       ← Paramètres
+│   ├── activity.html       ← Journal d'activité
+│   └── credits.html        ← À propos
 ├── ui/
 │   ├── __init__.py
 │   ├── main_window.py      ← Fenêtre principale
+│   ├── template_engine.py  ← Moteur Jinja2
+│   ├── theme.py            ← Thème et styles Qt
 │   ├── topbar.py           ← Barre de navigation
 │   ├── subbar.py           ← Filtres et tri
 │   ├── pages/
 │   │   ├── __init__.py
-│   │   ├── library_page.py ← Grille des jaquettes
-│   │   ├── detail_page.py  ← Page de détail complète
-│   │   ├── folders_page.py ← Gestion des dossiers
-│   │   ├── settings_page.py← Paramètres
-│   │   └── credits_page.py ← À propos
+│   │   ├── library_page.py
+│   │   ├── detail_page.py
+│   │   ├── folders_page.py
+│   │   ├── settings_page.py
+│   │   └── credits_page.py
 │   └── widgets/
 │       ├── __init__.py
 │       ├── pkg_card.py     ← Carte jaquette
 │       └── status_bar.py   ← Barre de statut
+├── tools/
+│   ├── read_pkg.py         ← Outil CLI lecture PKG
+│   ├── api_pkg.py          ← Outil CLI RAWG
+│   ├── extract_covers.py   ← Extraction batch des jaquettes
+│   └── inspect_pkg.py      ← Inspecteur PKG détaillé
 ├── main.py                 ← Point d'entrée
-├── ps4pkgvault.db          ← Base de données locale (généré, ignoré par Git)
-├── settings.json           ← Préférences (généré, ignoré par Git)
-└── requirements.txt
+├── requirements.txt
+├── README.md
+└── CHANGELOG.md
 ```
 
 ---
@@ -120,16 +175,7 @@ PKGVault/
 | `0x000` | 4 bytes | Magic : `0x7F434E54` |
 | `0x010` | 2 bytes | Nombre d'entrées (BE) |
 | `0x018` | 4 bytes | Offset table des entrées (BE) |
-| `0x018` | 4 bytes | Content type |
 | `0x040` | 36 bytes | Content-ID (ASCII) |
-
-### Entrées PKG (32 bytes chacune)
-
-| Offset | Description |
-|---|---|
-| `0x00` | Entry ID (uint32 BE) |
-| `0x10` | Data offset (uint32 BE) |
-| `0x14` | Data size (uint32 BE) |
 
 ### IDs importants
 
@@ -164,23 +210,16 @@ PKGVault/
 
 ### IGDB
 
-- Utilisé par l’application principale via `core/api_client.py`
+- Utilisé par `core/api_client.py`
 - URL : https://api.igdb.com
 - Requiert un compte Twitch Developer gratuit
-- Fournit : titre, description, genres, date de sortie, développeur, éditeur, jaquette, screenshots et vidéos
-- Identifiants à renseigner dans les paramètres de l’application
+- Fournit : titre, description, genres, date de sortie, développeur, éditeur, jaquette, screenshots
+- Traite les jeux **BASE** uniquement — les données sont ensuite propagées aux **DLC** liés
 
 ### PlayStation Store
 
 - Pas de clé requise
-- Utilisé en priorité pour certaines jaquettes officielles quand disponible
-
-### RAWG.io
-
-- Utilisé par l’outil CLI `tools/api_pkg.py`
-- URL : https://rawg.io/apidocs
-- Fournit : titre, description, genres, rating, date de sortie et screenshots
-- La jaquette RAWG est téléchargée uniquement si aucune jaquette locale extraite du PKG n’existe
+- Utilisé pour les jaquettes officielles
 
 ---
 
@@ -192,14 +231,14 @@ PKGVault/
 |---|---|---|
 | `content_id` | TEXT UNIQUE | Identifiant unique PS4 |
 | `title` | TEXT | Titre depuis param.sfo |
-| `title_api` | TEXT | Titre depuis l’API externe |
+| `title_api` | TEXT | Titre depuis IGDB |
 | `type` | TEXT | game / dlc / update / backport |
 | `firmware` | TEXT | Firmware minimum |
 | `cover_path` | TEXT | Chemin local jaquette |
-| `description` | TEXT | Description depuis l’API externe |
+| `description` | TEXT | Description depuis IGDB |
 | `genres` | TEXT | JSON array |
 | `languages` | TEXT | JSON array |
-| `api_fetched` | INTEGER | 0 = pas encore appelé |
+| `api_fetched` | INTEGER | 0 = pas encore traité |
 
 ### Table `game_relations`
 
@@ -221,28 +260,29 @@ PKGVault/
 
 ## Développeur
 
-**Sébastien** — RC Informatique  
-6 Place des Halles, 03000 Moulins (Allier), France  
-Téléphone : 04 70 44 39 36 / 06 51 97 55 42  
-Site : rc-informatique.fr
+**Sébastien** — RC Informatique
+6 Place des Halles, 03000 Moulins (Allier), France
+Téléphone : 04 70 44 39 36 / 06 51 97 55 42
+Site : [rc-informatique.fr](https://rc-informatique.fr)
 
 ---
 
 ## Crédits
 
-- Interface développée avec l'assistance de **Claude** (Anthropic)
-- Design inspiré de **Windows 11 / Microsoft Store**
-- Données de jeux via **IGDB** dans l’application principale
+- Interface développée avec l'assistance de **Claude** (Anthropic) — Sonnet 4.6
+- Design inspiré de **Windows 11 / Microsoft Store / Fluent Design**
+- Données de jeux via **IGDB**
 - Jaquettes via **PlayStation Store**
+- Icônes via **Font Awesome 6 Free**
 
 ---
 
 ## Licence
 
-Usage personnel uniquement.  
-Ce logiciel ne encourage aucune violation des droits d'auteur.  
+Usage personnel uniquement.
+Ce logiciel n'encourage aucune violation des droits d'auteur.
 Les fichiers PKG utilisés doivent provenir de jeux dont vous êtes propriétaire.
 
 ---
 
-*PKGVault v1.0.0 — 2026*
+*PKGVault v1.1.0 — 2026*

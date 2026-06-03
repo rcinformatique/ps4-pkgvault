@@ -46,6 +46,9 @@
   font-family: 'Segoe UI', Arial, sans-serif;
   text-decoration: none;
   transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .credit-link:hover { background: var(--accent); color: #fff; }
 
@@ -63,7 +66,7 @@
   padding: 20px 16px;
   text-align: center;
 }
-.credit-card-icon { font-size: 28px; margin-bottom: 8px; }
+.credit-card-icon { font-size: 28px; margin-bottom: 8px; color: var(--accent); }
 .credit-card-title {
   font-size: 13px;
   font-weight: 600;
@@ -102,7 +105,7 @@
   align-items: center;
   gap: 8px;
 }
-.tech-item-icon { font-size: 18px; flex-shrink: 0; }
+.tech-item-icon { font-size: 16px; flex-shrink: 0; color: var(--accent); width: 20px; text-align: center; }
 .tech-item-name { font-size: 12px; font-weight: 500; color: var(--tp); }
 .tech-item-ver  { font-size: 10px; color: var(--th); }
 
@@ -121,27 +124,29 @@
 
   <!-- Hero -->
   <div class="credits-hero">
-    <div class="credits-logo">📦 PS4 PKG<span class="accent">Vault</span></div>
+    <div class="credits-logo"><i class="fa-solid fa-box"></i> PS4 PKG<span class="accent">Vault</span></div>
     <div class="credits-version">Version 1.0.0 · Build 2026.05.31</div>
     <div class="credits-tagline">
       Gestionnaire de fichiers PKG PS4<br>
       Lecture directe des métadonnées SFO · Jaquettes HD · Base de données locale
     </div>
     <div class="credits-links">
-      <a class="credit-link"
-  onclick="_callBridge(function(b){ b.navigate('library'); })"
-  href="https://github.com/tonusername/ps4-pkgvault">
-  🐙 GitHub
-</a>
-      <a class="credit-link" href="https://rawg.io/apidocs">🎮 RAWG.io</a>
-      <a class="credit-link" href="https://rc-informatique.fr">🏪 RC Informatique</a>
+      <a class="credit-link" href="https://github.com/rcinformatique/ps4-pkgvault" target="_blank">
+        <i class="fa-brands fa-github"></i> GitHub
+      </a>
+      <a class="credit-link" href="https://www.igdb.com" target="_blank">
+        <i class="fa-solid fa-gamepad"></i> IGDB
+      </a>
+      <a class="credit-link" href="https://rc-informatique.fr" target="_blank">
+        <i class="fa-solid fa-store"></i> RC Informatique
+      </a>
     </div>
   </div>
 
   <!-- Credits grid -->
   <div class="credits-grid">
     <div class="credit-card">
-      <div class="credit-card-icon">👨‍💻</div>
+      <div class="credit-card-icon"><i class="fa-solid fa-code"></i></div>
       <div class="credit-card-title">Développeur</div>
       <div class="credit-card-lines">
         Sébastien<br>
@@ -151,7 +156,7 @@
       </div>
     </div>
     <div class="credit-card">
-      <div class="credit-card-icon">🤖</div>
+      <div class="credit-card-icon"><i class="fa-solid fa-robot"></i></div>
       <div class="credit-card-title">Assisté par</div>
       <div class="credit-card-lines">
         Claude (Anthropic)<br>
@@ -161,7 +166,7 @@
       </div>
     </div>
     <div class="credit-card">
-      <div class="credit-card-icon">🎨</div>
+      <div class="credit-card-icon"><i class="fa-solid fa-palette"></i></div>
       <div class="credit-card-title">Design inspiré de</div>
       <div class="credit-card-lines">
         Windows 11<br>
@@ -177,45 +182,87 @@
     <div class="tech-title">Technologies utilisées</div>
     <div class="tech-grid">
       <div class="tech-item">
-        <span class="tech-item-icon">🐍</span>
+        <span class="tech-item-icon"><i class="fa-brands fa-python"></i></span>
         <div>
           <div class="tech-item-name">Python</div>
           <div class="tech-item-ver">3.13+</div>
         </div>
       </div>
       <div class="tech-item">
-        <span class="tech-item-icon">🖥️</span>
+        <span class="tech-item-icon"><i class="fa-solid fa-desktop"></i></span>
         <div>
           <div class="tech-item-name">PyQt6</div>
           <div class="tech-item-ver">6.x</div>
         </div>
       </div>
       <div class="tech-item">
-        <span class="tech-item-icon">🗄️</span>
+        <span class="tech-item-icon"><i class="fa-solid fa-database"></i></span>
         <div>
           <div class="tech-item-name">SQLite</div>
           <div class="tech-item-ver">3.x</div>
         </div>
       </div>
       <div class="tech-item">
-        <span class="tech-item-icon">🌐</span>
+        <span class="tech-item-icon"><i class="fa-solid fa-globe"></i></span>
         <div>
           <div class="tech-item-name">Jinja2</div>
           <div class="tech-item-ver">3.x</div>
         </div>
       </div>
       <div class="tech-item">
-        <span class="tech-item-icon">🖼️</span>
+        <span class="tech-item-icon"><i class="fa-solid fa-image"></i></span>
         <div>
           <div class="tech-item-name">Pillow</div>
-          <div class="tech-item-ver">10.x</div>
+          <div class="tech-item-ver">12.x</div>
         </div>
       </div>
       <div class="tech-item">
-        <span class="tech-item-icon">🎮</span>
+        <span class="tech-item-icon"><i class="fa-solid fa-gamepad"></i></span>
         <div>
-          <div class="tech-item-name">RAWG API</div>
+          <div class="tech-item-name">IGDB API</div>
+          <div class="tech-item-ver">v4</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-item-icon"><i class="fa-solid fa-lock"></i></span>
+        <div>
+          <div class="tech-item-name">Twitch OAuth</div>
           <div class="tech-item-ver">v2</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-item-icon"><i class="fa-solid fa-tower-broadcast"></i></span>
+        <div>
+          <div class="tech-item-name">Requests</div>
+          <div class="tech-item-ver">2.x</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-item-icon"><i class="fa-brands fa-playstation"></i></span>
+        <div>
+          <div class="tech-item-name">PS Store API</div>
+          <div class="tech-item-ver">Publique</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-item-icon"><i class="fa-brands fa-font-awesome"></i></span>
+        <div>
+          <div class="tech-item-name">Font Awesome</div>
+          <div class="tech-item-ver">6 Free</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-item-icon"><i class="fa-solid fa-cube"></i></span>
+        <div>
+          <div class="tech-item-name">PyInstaller</div>
+          <div class="tech-item-ver">6.x</div>
+        </div>
+      </div>
+      <div class="tech-item">
+        <span class="tech-item-icon"><i class="fa-solid fa-window-maximize"></i></span>
+        <div>
+          <div class="tech-item-name">QWebEngine</div>
+          <div class="tech-item-ver">6.x</div>
         </div>
       </div>
     </div>
@@ -223,7 +270,7 @@
 
   <!-- Footer -->
   <div class="credits-footer">
-    Fait avec ❤️ pour la communauté PS4 ·
+    Fait avec <i class="fa-solid fa-heart" style="color:#e05a5a;"></i> pour la communauté PS4 ·
     <span class="accent">PS4 PKGVault © 2026</span> · Tous droits réservés<br>
     Ce logiciel est destiné à un usage personnel uniquement.
     Les fichiers PKG utilisés doivent provenir de jeux dont vous êtes propriétaire.

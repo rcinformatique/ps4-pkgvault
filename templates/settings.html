@@ -28,7 +28,7 @@
   color: var(--tp);
   border-radius: var(--r-xl) var(--r-xl) 0 0;
 }
-.settings-section-header .icon { font-size: 18px; }
+.settings-section-header .icon { font-size: 16px; color: var(--accent); width: 20px; text-align: center; }
 
 .settings-row {
   padding: 14px 20px;
@@ -125,6 +125,9 @@
   height: 32px;
   transition: all 0.15s;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .test-btn:hover { background: var(--accent); color: #fff; }
 
@@ -147,94 +150,63 @@
   </div>
 
   <!-- APIs -->
-<div class="settings-section">
-  <div class="settings-section-header">
-    <span class="icon">🔌</span> APIs &amp; Données
-  </div>
-
-  <!-- IGDB Client ID -->
-  <div class="settings-row">
-    <div class="settings-row-text">
-      <div class="row-label">Twitch Client ID</div>
-      <div class="row-desc">
-        1. Va sur <strong>dev.twitch.tv</strong> → Console → Enregistrer une application<br>
-        2. Nom : ce que tu veux · OAuth : <strong>http://localhost</strong> · Catégorie : <strong>Application Integration</strong><br>
-        3. Copie le <strong>Client ID</strong> généré ici
-      </div>
-    </div>
-    <div class="input-row">
-      <input class="settings-input" type="text" id="igdb-client-id"
-        placeholder="Twitch Client ID…"
-        value="{{ settings.igdb_client_id or '' }}" />
-    </div>
-  </div>
-
-  <!-- IGDB Client Secret -->
-  <div class="settings-row">
-    <div class="settings-row-text">
-      <div class="row-label">Twitch Client Secret</div>
-      <div class="row-desc">
-        4. Dans ta Console Twitch → <strong>Nouveau secret</strong> → copie-le ici<br>
-        ⚠️ Ne partage jamais ce secret
-      </div>
-    </div>
-    <div class="input-row">
-      <input class="settings-input" type="password" id="igdb-client-secret"
-        placeholder="Twitch Client Secret…"
-        value="{{ settings.igdb_client_secret or '' }}" />
-      <button class="test-btn" onclick="testIgdb()">Tester</button>
-    </div>
-  </div>
-
-  <!-- Auto-fetch -->
-  <div class="settings-row">
-    <div class="settings-row-text">
-      <div class="row-label">Téléchargement automatique</div>
-      <div class="row-desc">Lance la récupération API après chaque scan</div>
-    </div>
-    <button class="toggle {{ 'on' if settings.auto_fetch == '1' else 'off' }}"
-      id="toggle-auto"
-      onclick="toggleAuto()"></button>
-  </div>
-
-</div>
-
-  <!-- Affichage -->
   <div class="settings-section">
     <div class="settings-section-header">
-      <span class="icon">🎨</span> Affichage
+      <span class="icon"><i class="fa-solid fa-plug"></i></span> APIs &amp; Données
     </div>
 
+    <!-- IGDB Client ID -->
     <div class="settings-row">
       <div class="settings-row-text">
-        <div class="row-label">Taille des cartes</div>
-        <div class="row-desc">Largeur minimale des cartes dans la grille</div>
+        <div class="row-label">Twitch Client ID</div>
+        <div class="row-desc">
+          1. Va sur <strong>dev.twitch.tv</strong> → Console → Enregistrer une application<br>
+          2. Nom : ce que tu veux · OAuth : <strong>http://localhost</strong> · Catégorie : <strong>Application Integration</strong><br>
+          3. Copie le <strong>Client ID</strong> généré ici
+        </div>
       </div>
-      <select class="settings-select" id="card-size">
-        <option value="160" {% if settings.card_min_width == '160' %}selected{% endif %}>Petites (160px)</option>
-        <option value="180" {% if settings.card_min_width == '180' or not settings.card_min_width %}selected{% endif %}>Moyennes (180px)</option>
-        <option value="220" {% if settings.card_min_width == '220' %}selected{% endif %}>Grandes (220px)</option>
-        <option value="260" {% if settings.card_min_width == '260' %}selected{% endif %}>Très grandes (260px)</option>
-      </select>
+      <div class="input-row">
+        <input class="settings-input" type="text" id="igdb-client-id"
+          placeholder="Twitch Client ID…"
+          value="{{ settings.igdb_client_id or '' }}" />
+      </div>
     </div>
 
+    <!-- IGDB Client Secret -->
     <div class="settings-row">
       <div class="settings-row-text">
-        <div class="row-label">Langue de l'interface</div>
-        <div class="row-desc">Redémarrage requis pour appliquer</div>
+        <div class="row-label">Twitch Client Secret</div>
+        <div class="row-desc">
+          4. Dans ta Console Twitch → <strong>Nouveau secret</strong> → copie-le ici<br>
+          <i class="fa-solid fa-triangle-exclamation" style="color:var(--warning);"></i> Ne partage jamais ce secret
+        </div>
       </div>
-      <select class="settings-select" id="lang">
-        <option value="fr" {% if settings.language == 'fr' or not settings.language %}selected{% endif %}>Français</option>
-        <option value="en" {% if settings.language == 'en' %}selected{% endif %}>English</option>
-      </select>
+      <div class="input-row">
+        <input class="settings-input" type="password" id="igdb-client-secret"
+          placeholder="Twitch Client Secret…"
+          value="{{ settings.igdb_client_secret or '' }}" />
+        <button class="test-btn" onclick="testIgdb()">
+          <i class="fa-solid fa-vial"></i> Tester
+        </button>
+      </div>
     </div>
 
+    <!-- Auto-fetch -->
+    <div class="settings-row">
+      <div class="settings-row-text">
+        <div class="row-label">Téléchargement automatique</div>
+        <div class="row-desc">Lance la récupération API après chaque scan</div>
+      </div>
+      <button class="toggle {{ 'on' if settings.auto_fetch == '1' else 'off' }}"
+        id="toggle-auto"
+        onclick="toggleAuto()"></button>
+    </div>
   </div>
 
   <!-- Cache & BDD -->
   <div class="settings-section">
     <div class="settings-section-header">
-      <span class="icon">🗄️</span> Base de données &amp; Cache
+      <span class="icon"><i class="fa-solid fa-database"></i></span> Base de données &amp; Cache
     </div>
 
     <div class="settings-row">
@@ -244,7 +216,7 @@
       </div>
       <button class="btn btn-danger"
         onclick="_callBridge(function(b){ b.clear_cache(); })">
-        🗑️ Vider
+        <i class="fa-solid fa-trash"></i> Vider
       </button>
     </div>
 
@@ -255,16 +227,15 @@
       </div>
       <button class="btn btn-danger"
         onclick="_callBridge(function(b){ b.reset_db(); })">
-        ⚠️ Réinitialiser
+        <i class="fa-solid fa-triangle-exclamation"></i> Réinitialiser
       </button>
     </div>
-
   </div>
 
   <!-- Bouton sauvegarder -->
   <div class="save-row">
     <button class="btn btn-primary" onclick="saveSettings()">
-      💾 Sauvegarder les paramètres
+      <i class="fa-solid fa-floppy-disk"></i> Sauvegarder les paramètres
     </button>
   </div>
 
@@ -291,8 +262,8 @@ function saveSettings() {
     igdb_client_id:     document.getElementById('igdb-client-id').value.trim(),
     igdb_client_secret: document.getElementById('igdb-client-secret').value.trim(),
     auto_fetch:         _autoFetch ? '1' : '0',
-    card_min_width:     document.getElementById('card-size').value,
-    language:           document.getElementById('lang').value,
+    card_min_width:     '180',
+    language:           'fr',
   };
   _callBridge(function(b) {
     b.save_settings(JSON.stringify(data));

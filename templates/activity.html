@@ -49,6 +49,9 @@
   font-family: 'Segoe UI', Arial, sans-serif;
   margin-left: auto;
   transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .btn-clear-act:hover { border-color: var(--error); color: var(--error); background: #fff5f5; }
 
@@ -84,10 +87,11 @@
 .dot-error { background: #e05a5a; }
 
 .event-icon {
-  font-size: 15px;
+  font-size: 13px;
   width: 22px;
   text-align: center;
   flex-shrink: 0;
+  color: var(--tm);
 }
 
 .event-body { flex: 1; min-width: 0; }
@@ -137,7 +141,7 @@
   gap: 10px;
   padding: 60px;
 }
-.act-empty-icon  { font-size: 48px; opacity: 0.35; }
+.act-empty-icon  { font-size: 48px; opacity: 0.35; color: var(--tm); }
 .act-empty-title { font-size: 15px; font-weight: 600; color: var(--tm); }
 .act-empty-sub   { font-size: 12px; color: var(--th); }
 {% endblock %}
@@ -149,16 +153,18 @@
       Tout · <span id="cnt-all">{{ total }}</span>
     </button>
     <button class="act-chip chip-scan" id="chip-scan" onclick="setFilter('scan')">
-      📦 Scans · <span id="cnt-scan">{{ count_scan }}</span>
+      <i class="fa-solid fa-box"></i> Scans · <span id="cnt-scan">{{ count_scan }}</span>
     </button>
     <button class="act-chip chip-api" id="chip-api" onclick="setFilter('api')">
-      🌐 API · <span id="cnt-api">{{ count_api }}</span>
+      <i class="fa-solid fa-globe"></i> API · <span id="cnt-api">{{ count_api }}</span>
     </button>
     <button class="act-chip chip-error" id="chip-error" onclick="setFilter('error')">
-      ❌ Erreurs · <span id="cnt-error">{{ count_error }}</span>
+      <i class="fa-solid fa-circle-xmark"></i> Erreurs · <span id="cnt-error">{{ count_error }}</span>
     </button>
   </div>
-  <button class="btn-clear-act" onclick="clearLog()">🗑 Vider</button>
+  <button class="btn-clear-act" onclick="clearLog()">
+    <i class="fa-solid fa-trash"></i> Vider
+  </button>
 </div>
 
 <div class="activity-wrap" id="feed"></div>
@@ -169,7 +175,11 @@ var _events = {{ events_json }};
 var _counts = {{ counts_json }};
 var _filter = 'all';
 
-var ICONS  = { scan: '📦', api: '🌐', error: '❌' };
+var ICONS = {
+  scan:  '<i class="fa-solid fa-box"></i>',
+  api:   '<i class="fa-solid fa-globe"></i>',
+  error: '<i class="fa-solid fa-circle-xmark"></i>'
+};
 var LABELS = { scan: 'Scan', api: 'API', error: 'Erreur' };
 
 function setFilter(type) {
@@ -190,7 +200,7 @@ function renderFeed() {
   if (!events.length) {
     feed.innerHTML =
       '<div class="act-empty">' +
-      '<div class="act-empty-icon">📭</div>' +
+      '<div class="act-empty-icon"><i class="fa-solid fa-inbox"></i></div>' +
       '<div class="act-empty-title">Aucune activité</div>' +
       '<div class="act-empty-sub">Les scans, appels API et erreurs apparaîtront ici.</div>' +
       '</div>';
@@ -211,7 +221,7 @@ function renderFeed() {
 
     html += '<div class="event-row">';
     html +=   '<div class="event-dot dot-' + e.type + '"></div>';
-    html +=   '<div class="event-icon">' + (ICONS[e.type] || '•') + '</div>';
+    html +=   '<div class="event-icon">' + (ICONS[e.type] || '<i class="fa-solid fa-circle"></i>') + '</div>';
     html +=   '<div class="event-body">';
     html +=     '<div class="event-msg">'    + esc(e.message) + '</div>';
     if (e.detail) {

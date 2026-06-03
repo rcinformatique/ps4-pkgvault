@@ -38,7 +38,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 64px;
+  font-size: 48px;
+  color: var(--accent);
 }
 .cover-ph-game     { background: linear-gradient(145deg, #d8e8f5, #eaf2fb); }
 .cover-ph-dlc      { background: linear-gradient(145deg, #d0ecd0, #e8f5e8); }
@@ -67,6 +68,9 @@
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .game-title {
@@ -77,7 +81,7 @@
 }
 .game-subtitle { font-size: 14px; color: var(--tm); margin-top: -4px; }
 .quick-row { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
-.quick-item { font-size: 13px; color: var(--ts); }
+.quick-item { font-size: 13px; color: var(--ts); display: inline-flex; align-items: center; gap: 5px; }
 .quick-rating { color: #ca5010; font-weight: 700; font-size: 15px; }
 .dev-pub { font-size: 13px; color: var(--tm); }
 
@@ -165,55 +169,10 @@
   justify-content: center;
   opacity: 0;
   transition: opacity 0.15s;
-  font-size: 24px;
+  font-size: 20px;
+  color: #fff;
 }
 .screen:hover .screen-overlay { opacity: 1; }
-
-/* ── Vidéo YouTube ── */
-.video-wrap {
-  position: relative;
-  width: 100%;
-  padding-top: 56.25%;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: #000;
-}
-.video-wrap iframe {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-.video-placeholder {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  background: linear-gradient(145deg, #1a1a2e, #2a2a4e);
-  cursor: pointer;
-}
-.video-play-btn {
-  width: 56px;
-  height: 56px;
-  background: #ff0000;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  transition: transform 0.15s;
-}
-.video-placeholder:hover .video-play-btn { transform: scale(1.1); }
-.video-label {
-  color: rgba(255,255,255,0.7);
-  font-size: 12px;
-  font-family: 'Segoe UI', Arial, sans-serif;
-}
 
 /* ── Lightbox ── */
 .lightbox {
@@ -242,7 +201,7 @@
   top: 20px;
   right: 24px;
   color: #fff;
-  font-size: 28px;
+  font-size: 20px;
   cursor: pointer;
   background: rgba(255,255,255,0.1);
   border: none;
@@ -265,7 +224,7 @@
   background: rgba(255,255,255,0.15);
   border: none;
   color: #fff;
-  font-size: 20px;
+  font-size: 18px;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -288,8 +247,19 @@
 .info-tbl { width: 100%; border-collapse: collapse; }
 .info-tbl tr { border-bottom: 1px solid var(--border-l); }
 .info-tbl tr:last-child { border-bottom: none; }
-.info-tbl td { padding: 7px 4px; font-size: 12px; vertical-align: top; }
-.ik { color: var(--th); width: 110px; text-align: right; padding-right: 14px; white-space: nowrap; }
+.info-tbl td { padding: 8px 4px; font-size: 12px; vertical-align: middle; }
+.ik {
+  color: var(--ts);
+  width: 120px;
+  text-align: left;
+  padding-right: 10px;
+  white-space: nowrap;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ik i { color: var(--accent); width: 14px; text-align: center; font-size: 11px; }
 .iv { color: var(--tp); font-weight: 500; word-break: break-word; }
 
 .langs-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -322,8 +292,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
   flex-shrink: 0;
+  color: var(--accent);
 }
 .rel-icon-game     { background: linear-gradient(145deg, #d8e8f5, #eaf2fb); }
 .rel-icon-dlc      { background: linear-gradient(145deg, #d0ecd0, #e8f5e8); }
@@ -352,17 +323,22 @@
              alt="{{ pkg.title }}"
              onclick="openLightbox('file:///{{ pkg.cover_path }}', -1)" />
       {% else %}
-        <div class="cover-placeholder cover-ph-{{ pkg.type }}">{{ pkg.type_icon }}</div>
+        <div class="cover-placeholder cover-ph-{{ pkg.type }}">
+          {% if pkg.type == 'game' %}<i class="fa-solid fa-gamepad"></i>
+          {% elif pkg.type == 'dlc' %}<i class="fa-solid fa-puzzle-piece"></i>
+          {% elif pkg.type == 'update' %}<i class="fa-solid fa-arrow-up"></i>
+          {% else %}<i class="fa-solid fa-clock-rotate-left"></i>{% endif %}
+        </div>
       {% endif %}
     </div>
 
     <div class="hero-info">
       <div class="badge-row">
         <span class="type-badge-hero badge-{{ pkg.type }}">{{ pkg.type_label }}</span>
-        {% if pkg.region %}<span class="tag">🌍 {{ pkg.region }}</span>{% endif %}
-        <span class="tag">🎮 PS4</span>
-        {% if pkg.firmware %}<span class="tag">🛡 FW {{ pkg.firmware }}</span>{% endif %}
-        {% if pkg.app_ver %}<span class="tag">📦 v{{ pkg.app_ver }}</span>{% endif %}
+        {% if pkg.region %}<span class="tag"><i class="fa-solid fa-earth-europe"></i> {{ pkg.region }}</span>{% endif %}
+        <span class="tag"><i class="fa-brands fa-playstation"></i> PS4</span>
+        {% if pkg.firmware %}<span class="tag"><i class="fa-solid fa-shield"></i> FW {{ pkg.firmware }}</span>{% endif %}
+        {% if pkg.app_ver %}<span class="tag"><i class="fa-solid fa-box"></i> v{{ pkg.app_ver }}</span>{% endif %}
       </div>
 
       <div class="game-title">{{ pkg.title_api or pkg.title or "Inconnu" }}</div>
@@ -373,8 +349,8 @@
 
       {% if pkg.rating or pkg.release_date %}
       <div class="quick-row">
-        {% if pkg.rating %}<span class="quick-item quick-rating">★ {{ "%.1f"|format(pkg.rating) }} / 5</span>{% endif %}
-        {% if pkg.release_date %}<span class="quick-item">📅 {{ pkg.release_date }}</span>{% endif %}
+        {% if pkg.rating %}<span class="quick-item quick-rating"><i class="fa-solid fa-star"></i> {{ "%.1f"|format(pkg.rating) }} / 5</span>{% endif %}
+        {% if pkg.release_date %}<span class="quick-item"><i class="fa-solid fa-calendar"></i> {{ pkg.release_date }}</span>{% endif %}
       </div>
       {% endif %}
 
@@ -389,17 +365,22 @@
       <div class="actions">
         <button class="btn-detail btn-detail-primary"
           onclick="_callBridge(function(b){ b.open_folder(_pkg.filepath); })">
-          📁 Ouvrir le dossier
+          <i class="fa-solid fa-folder-open"></i> Ouvrir le dossier
         </button>
         <button class="btn-detail btn-detail-secondary"
           onclick="_callBridge(function(b){ b.copy_path(_pkg.filepath); })">
-          📋 Copier le chemin
+          <i class="fa-solid fa-copy"></i> Copier le chemin
         </button>
         <button class="btn-detail btn-detail-secondary"
           onclick="_callBridge(function(b){ b.copy_cid(_pkg.content_id); })">
-          🔑 Copier le CUSA
+          <i class="fa-solid fa-key"></i> Copier le CUSA
         </button>
-        <button class="btn-detail btn-detail-secondary" onclick="_callBridge(function(b){ b.refetch_api(_pkg.content_id); })">🔄 Rafraîchir IGDB</button>
+        {% if pkg.type in ('game', 'dlc') %}
+        <button class="btn-detail btn-detail-secondary"
+          onclick="_callBridge(function(b){ b.refetch_api(_pkg.content_id); })">
+          <i class="fa-solid fa-rotate"></i> Rafraîchir IGDB
+        </button>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -419,8 +400,8 @@
               <div class="stars">
                 {% set full  = pkg.rating | int %}
                 {% set empty = 5 - full %}
-                {% for i in range(full)  %}<span class="star-full">★</span>{% endfor %}
-                {% for i in range(empty) %}<span class="star-empty">★</span>{% endfor %}
+                {% for i in range(full)  %}<span class="star-full"><i class="fa-solid fa-star"></i></span>{% endfor %}
+                {% for i in range(empty) %}<span class="star-empty"><i class="fa-regular fa-star"></i></span>{% endfor %}
               </div>
               <div class="rating-src">Note IGDB</div>
             </div>
@@ -451,8 +432,35 @@
             {% for path in pkg.screenshots %}
               <div class="screen" onclick="openLightbox('file:///{{ path }}', {{ loop.index0 }})">
                 <img src="file:///{{ path }}" alt="Screenshot {{ loop.index }}" />
-                <div class="screen-overlay">🔍</div>
+                <div class="screen-overlay"><i class="fa-solid fa-magnifying-glass-plus"></i></div>
               </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Contenu associé -->
+      {% if related %}
+      <div class="sc">
+        <div class="sc-head">Contenu associé</div>
+        <div class="sc-body">
+          <div class="rel-list">
+            {% for rel in related %}
+            <div class="rel-item"
+              onclick="_callBridge(function(b){ b.open_related(_related[{{ loop.index0 }}].content_id); })">
+              <div class="rel-icon rel-icon-{{ rel.type }}">
+                {% if rel.type == 'game' %}<i class="fa-solid fa-gamepad"></i>
+                {% elif rel.type == 'dlc' %}<i class="fa-solid fa-puzzle-piece"></i>
+                {% elif rel.type == 'update' %}<i class="fa-solid fa-arrow-up"></i>
+                {% else %}<i class="fa-solid fa-clock-rotate-left"></i>{% endif %}
+              </div>
+              <div class="rel-info">
+                <div class="rel-title">{{ rel.title_api or rel.title }}</div>
+                <span class="rel-badge rel-badge-{{ rel.type }}">{{ rel.type_label }}</span>
+              </div>
+              <div class="rel-size">{{ rel.size_str }}</div>
+            </div>
             {% endfor %}
           </div>
         </div>
@@ -468,13 +476,34 @@
         <div class="sc-head">Informations</div>
         <div class="sc-body">
           <table class="info-tbl">
-            <tr><td class="ik">Content-ID</td><td class="iv">{{ pkg.content_id or "—" }}</td></tr>
-            <tr><td class="ik">Version app</td><td class="iv">{{ pkg.app_ver or "—" }}</td></tr>
-            <tr><td class="ik">Firmware</td><td class="iv">{{ pkg.firmware or "—" }}</td></tr>
-            <tr><td class="ik">Taille</td><td class="iv">{{ pkg.size_str or "—" }}</td></tr>
-            <tr><td class="ik">Région</td><td class="iv">{{ pkg.region or "—" }}</td></tr>
-            <tr><td class="ik">Catégorie SFO</td><td class="iv">{{ pkg.category or "—" }}</td></tr>
-            <tr><td class="ik">Fichier</td><td class="iv" style="font-size:11px;word-break:break-all;">{{ pkg.filename or "—" }}</td></tr>
+            <tr>
+              <td class="ik"><i class="fa-solid fa-fingerprint"></i> Content-ID</td>
+              <td class="iv">{{ pkg.content_id or "—" }}</td>
+            </tr>
+            <tr>
+              <td class="ik"><i class="fa-solid fa-code-branch"></i> Version</td>
+              <td class="iv">{{ pkg.app_ver or "—" }}</td>
+            </tr>
+            <tr>
+              <td class="ik"><i class="fa-solid fa-shield"></i> Firmware</td>
+              <td class="iv">{{ pkg.firmware or "—" }}</td>
+            </tr>
+            <tr>
+              <td class="ik"><i class="fa-solid fa-weight-hanging"></i> Taille</td>
+              <td class="iv">{{ pkg.size_str or "—" }}</td>
+            </tr>
+            <tr>
+              <td class="ik"><i class="fa-solid fa-earth-europe"></i> Région</td>
+              <td class="iv">{{ pkg.region or "—" }}</td>
+            </tr>
+            <tr>
+              <td class="ik"><i class="fa-solid fa-tag"></i> Catégorie</td>
+              <td class="iv">{{ pkg.category or "—" }}</td>
+            </tr>
+            <tr>
+              <td class="ik"><i class="fa-solid fa-file"></i> Fichier</td>
+              <td class="iv" style="font-size:11px;word-break:break-all;">{{ pkg.filename or "—" }}</td>
+            </tr>
           </table>
         </div>
       </div>
@@ -494,42 +523,24 @@
       </div>
       {% endif %}
 
-      <!-- Contenu associé -->
-      <div class="sc">
-        <div class="sc-head">Contenu associé</div>
-        <div class="sc-body">
-          {% if related %}
-            <div class="rel-list">
-              {% for rel in related %}
-              <div class="rel-item"
-                onclick="_callBridge(function(b){ b.open_related(_related[{{ loop.index0 }}].content_id); })">
-                <div class="rel-icon rel-icon-{{ rel.type }}">{{ rel.type_icon }}</div>
-                <div class="rel-info">
-                  <div class="rel-title">{{ rel.title_api or rel.title }}</div>
-                  <span class="rel-badge rel-badge-{{ rel.type }}">{{ rel.type_label }}</span>
-                </div>
-                <div class="rel-size">{{ rel.size_str }}</div>
-              </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <div class="empty-rel">Aucun contenu associé<br>trouvé dans la bibliothèque.</div>
-          {% endif %}
-        </div>
-      </div>
-
     </div>
   </div>
 </div>
 
 <!-- ── Lightbox ── -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
-  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <button class="lightbox-close" onclick="closeLightbox()">
+    <i class="fa-solid fa-xmark"></i>
+  </button>
   <img class="lightbox-img" id="lightbox-img" src="" alt="" />
   <div class="lightbox-nav" id="lightbox-nav">
-    <button class="lightbox-btn" onclick="lightboxPrev(event)">‹</button>
+    <button class="lightbox-btn" onclick="lightboxPrev(event)">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
     <span class="lightbox-counter" id="lightbox-counter"></span>
-    <button class="lightbox-btn" onclick="lightboxNext(event)">›</button>
+    <button class="lightbox-btn" onclick="lightboxNext(event)">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
   </div>
 </div>
 
@@ -538,19 +549,15 @@
 {% block extra_scripts %}
 var _pkg       = {{ pkg | tojson }};
 var _related   = {{ related | tojson }};
-var _lbIndex   = -1;  // index courant dans la lightbox (-1 = cover)
+var _lbIndex   = -1;
 var _lbScreens = _pkg.screenshots || [];
 
-// ── Lightbox ────────────────────────────────────────────────────────
 function openLightbox(src, index) {
   _lbIndex = index;
   document.getElementById('lightbox-img').src = src;
   document.getElementById('lightbox').classList.add('open');
-
-  // Affiche la nav seulement pour les screenshots
   var nav = document.getElementById('lightbox-nav');
   nav.style.display = index >= 0 && _lbScreens.length > 1 ? 'flex' : 'none';
-
   updateLightboxCounter();
   document.addEventListener('keydown', onLightboxKey);
 }

@@ -4,7 +4,7 @@
     "message": "Asterix & Obelix XXL2",
     "detail": "Mise à jour · CUSA13367 · 291.0 Mo",
     "filename": "[SuperPSX]-Asterix.and.Obelix.XXL.2.Roman.Rumble.in.Las.Vegum.Update.v1.03-CUSA13367-PS4.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA13367",
       "pkg_type": "update",
@@ -16,7 +16,7 @@
     "message": "Asterix & Obelix XXL2",
     "detail": "Jeu · CUSA13367 · 1.5 Go",
     "filename": "[SuperPSX]-Asterix.and.Obelix.XXL.2.Roman.Rumble.in.Las.Vegum.v1.00-CUSA13367-PS4.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA13367",
       "pkg_type": "game",
@@ -28,7 +28,7 @@
     "message": "Legionnaire Outfit - Asterix and Obelix XXL 3",
     "detail": "DLC · CUSA16983 · 3.9 Mo",
     "filename": "EP4295-CUSA16983_00-XXL3SKINLEGIONEU-A0100-V0100.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA16983",
       "pkg_type": "dlc",
@@ -40,7 +40,7 @@
     "message": "Viking Outfit - Asterix and Obelix XXL 3",
     "detail": "DLC · CUSA16983 · 3.9 Mo",
     "filename": "EP4295-CUSA16983_00-XXL3SKINVIKINGEU-A0100-V0100.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA16983",
       "pkg_type": "dlc",
@@ -52,7 +52,7 @@
     "message": "Asterix & Obelix XXL3",
     "detail": "Jeu · CUSA16983 · 970.8 Mo",
     "filename": "Asterix.and.Obelix.XXL3_CUSA16983_v1.00_[6.72]_OPOISSO893.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA16983",
       "pkg_type": "game",
@@ -64,7 +64,7 @@
     "message": "LEGO Party!",
     "detail": "Backport · CUSA53974 · 3.8 Go",
     "filename": "[SuperPSX]-LEGO.Party_CUSA53974_v1.06_BACKPORT_[5.05-6.72-7.xx-9.00-11.00-12.00]-PS4.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA53974",
       "pkg_type": "backport",
@@ -75,12 +75,12 @@
     "type": "scan",
     "message": "LEGO Party!",
     "detail": "Jeu · CUSA53974 · 5.1 Go",
-    "filename": "[superpsx]sstest-lego.party_cusa53974_v1.00_[12.00]-ps4.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "filename": "[superpsx]lego.party_cusa53974_v1.00_[12.00]-ps4.pkg",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA53974",
       "pkg_type": "game",
-      "filepath": "F:\\PS4 JailBreak\\Games\\Lego Party\\[superpsx]sstest-lego.party_cusa53974_v1.00_[12.00]-ps4.pkg"
+      "filepath": "F:\\PS4 JailBreak\\Games\\Lego Party\\[superpsx]lego.party_cusa53974_v1.00_[12.00]-ps4.pkg"
     }
   },
   {
@@ -88,7 +88,7 @@
     "message": "Rabbids Party of Legends",
     "detail": "Jeu · CUSA27236 · 4.4 Go",
     "filename": "Rabbids.Party.of.Legends_CUSA27236_v1.00_[9.00]_OPOISSO893.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA27236",
       "pkg_type": "game",
@@ -97,26 +97,14 @@
   },
   {
     "type": "scan",
-    "message": "Red Dead Redemption 2",
-    "detail": "Jeu · CUSA08519 · 79.4 Go",
-    "filename": "[SPSX]-Red.Dead.Redemption.2_CUSA08519_v1.00_[6.72]_OPOISSO893.pkg",
-    "timestamp": "2026-06-03T04:21:51",
-    "extra": {
-      "title_id": "CUSA08519",
-      "pkg_type": "game",
-      "filepath": "F:\\PS4 JailBreak\\Games\\Red Dead Redemption 2\\[SPSX]-Red.Dead.Redemption.2_CUSA08519_v1.00_[6.72]_OPOISSO893.pkg"
-    }
-  },
-  {
-    "type": "scan",
     "message": "Red Dead Redemption 2: Pre-Order Bonuses",
     "detail": "DLC · CUSA08519 · 1.1 Mo",
     "filename": "CUSA08519_RED_DEAD_REDEMPTION_2_PREORDER_BONUS_DLC_FXD.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA08519",
       "pkg_type": "dlc",
-      "filepath": "F:\\PS4 JailBreak\\Games\\Red Dead Redemption 2\\ALLDLC_FXD_CUSA03041&CUSA08519_US&EU_PS4_Fugazi-[DLPSGAME.COM]\\Red Dead Redemption 2 - ALL DLC [CUSA03041 & CUSA08519] FIXED\\CUSA08519 (EU)\\CUSA08519_RED_DEAD_REDEMPTION_2_PREORDER_BONUS_DLC_FXD.pkg"
+      "filepath": "F:\\PS4 JailBreak\\Games\\Red Dead Redemption 2\\DLC\\CUSA08519_RED_DEAD_REDEMPTION_2_PREORDER_BONUS_DLC_FXD.pkg"
     }
   },
   {
@@ -124,11 +112,23 @@
     "message": "Red Dead Redemption 2: Special Edition Content",
     "detail": "DLC · CUSA08519 · 1.1 Mo",
     "filename": "CUSA08519_RED_DEAD_REDEMPTION_2_SPECIAL_EDITION_CONTENT_DLC_FXD.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA08519",
       "pkg_type": "dlc",
-      "filepath": "F:\\PS4 JailBreak\\Games\\Red Dead Redemption 2\\ALLDLC_FXD_CUSA03041&CUSA08519_US&EU_PS4_Fugazi-[DLPSGAME.COM]\\Red Dead Redemption 2 - ALL DLC [CUSA03041 & CUSA08519] FIXED\\CUSA08519 (EU)\\CUSA08519_RED_DEAD_REDEMPTION_2_SPECIAL_EDITION_CONTENT_DLC_FXD.pkg"
+      "filepath": "F:\\PS4 JailBreak\\Games\\Red Dead Redemption 2\\DLC\\CUSA08519_RED_DEAD_REDEMPTION_2_SPECIAL_EDITION_CONTENT_DLC_FXD.pkg"
+    }
+  },
+  {
+    "type": "scan",
+    "message": "Red Dead Redemption 2",
+    "detail": "Jeu · CUSA08519 · 79.4 Go",
+    "filename": "[SPSX]-Red.Dead.Redemption.2_CUSA08519_v1.00_[6.72]_OPOISSO893.pkg",
+    "timestamp": "2026-06-03T15:09:37",
+    "extra": {
+      "title_id": "CUSA08519",
+      "pkg_type": "game",
+      "filepath": "F:\\PS4 JailBreak\\Games\\Red Dead Redemption 2\\Game\\[SPSX]-Red.Dead.Redemption.2_CUSA08519_v1.00_[6.72]_OPOISSO893.pkg"
     }
   },
   {
@@ -136,11 +136,11 @@
     "message": "Red Dead Redemption 2",
     "detail": "Mise à jour · CUSA08519 · 19.2 Go",
     "filename": "CUSA08519_v1.32_[6.72]_OPOISSO893-[DLPSGAME.COM].pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA08519",
       "pkg_type": "update",
-      "filepath": "F:\\PS4 JailBreak\\Games\\Red Dead Redemption 2\\CUSA08519_v1.32_[6.72]_OPOISSO893-[DLPSGAME.COM].pkg"
+      "filepath": "F:\\PS4 JailBreak\\Games\\Red Dead Redemption 2\\Update\\CUSA08519_v1.32_[6.72]_OPOISSO893-[DLPSGAME.COM].pkg"
     }
   },
   {
@@ -148,7 +148,7 @@
     "message": "The Smurfs - Village Party",
     "detail": "Backport · CUSA47540 · 970.0 Mo",
     "filename": "[DLPSGAME.COM]-The.Smurfs.Village.Party_CUSA47540_v1.01_BACKPORT_[5.05-6.72-7.xx-9.00-11.00]_OPOISSO893.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA47540",
       "pkg_type": "backport",
@@ -160,7 +160,7 @@
     "message": "The Smurfs - Village Party",
     "detail": "Jeu · CUSA47540 · 1.2 Go",
     "filename": "[DLPSGAME.COM]-The.Smurfs.Village.Party_CUSA47540_v1.00_[11.00]_OPOISSO893.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA47540",
       "pkg_type": "game",
@@ -172,7 +172,7 @@
     "message": "Uncharted 4: Desert Weapon Skin",
     "detail": "DLC · CUSA00917 · 128.0 Ko",
     "filename": "CUSA00917_UNCHARTED_4_DESERT_WEAPON_SKIN_DLC_FIX.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA00917",
       "pkg_type": "dlc",
@@ -184,7 +184,7 @@
     "message": "Uncharted 4: Golden Weapon Skin",
     "detail": "DLC · CUSA00917 · 128.0 Ko",
     "filename": "CUSA00917_UNCHARTED_4_GOLDEN_WEAPON_SKIN_DLC_FIX.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA00917",
       "pkg_type": "dlc",
@@ -196,7 +196,7 @@
     "message": "Uncharted 4: Heist Drake",
     "detail": "DLC · CUSA00917 · 128.0 Ko",
     "filename": "CUSA00917_UNCHARTED_4_HEIST_DRAKE_SKIN_DLC_FIX.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA00917",
       "pkg_type": "dlc",
@@ -208,7 +208,7 @@
     "message": "Uncharted 4: Phurba Dagger Taunt",
     "detail": "DLC · CUSA00917 · 128.0 Ko",
     "filename": "CUSA00917_UNCHARTED_4_PHURBA_DAGGER_TAUNT_DLC_FIX.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA00917",
       "pkg_type": "dlc",
@@ -220,7 +220,7 @@
     "message": "Uncharted 4: Snow Weapon Skin",
     "detail": "DLC · CUSA00917 · 128.0 Ko",
     "filename": "CUSA00917_UNCHARTED_4_SNOW_WEAPON_SKIN_DLC_FIX.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA00917",
       "pkg_type": "dlc",
@@ -232,7 +232,7 @@
     "message": "Uncharted 4: Nathan Drake Skin",
     "detail": "DLC · CUSA00917 · 128.0 Ko",
     "filename": "CUSA00917_UNCHARTED_4_UTF_DRAKE_SKIN_DLC_FIX.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA00917",
       "pkg_type": "dlc",
@@ -244,7 +244,7 @@
     "message": "Uncharted: The Lost Legacy Multiplayer Unlock",
     "detail": "DLC · CUSA00917 · 128.0 Ko",
     "filename": "CUSA00917_UNCHARTED_THE_LOST_LEGACY_MP_UNLOCK_DLC_FIX.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA00917",
       "pkg_type": "dlc",
@@ -256,7 +256,7 @@
     "message": "Uncharted 4: A Thief’s End",
     "detail": "Jeu · CUSA00917 · 56.7 Go",
     "filename": "U4ATE_00917-DUPLEX-[DLPSGAME.COM].pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA00917",
       "pkg_type": "game",
@@ -268,7 +268,7 @@
     "message": "Uncharted 4: A Thief’s End",
     "detail": "Mise à jour · CUSA00917 · 13.8 Go",
     "filename": "U4ATE_00917-DUPLEX-Update-v1.33-[DLPSGAME.COM].pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA00917",
       "pkg_type": "update",
@@ -280,7 +280,7 @@
     "message": "Uncharted 4: A Thief’s End",
     "detail": "Mise à jour · CUSA00917 · 13.8 Go",
     "filename": "Uncharted.4.A.Thiefs.End.Update.v1.32.PS4-DUPLEX.pkg",
-    "timestamp": "2026-06-03T04:21:51",
+    "timestamp": "2026-06-03T15:09:37",
     "extra": {
       "title_id": "CUSA00917",
       "pkg_type": "update",
@@ -288,51 +288,69 @@
     }
   },
   {
-    "type": "scan",
-    "message": "Red Dead Redemption 2: Pre-Order Bonuses",
-    "detail": "DLC · CUSA08519 · 1.1 Mo",
-    "filename": "cusa08519_red_dead_redemption_2_preorder_bonus_dlc_fxd.pkg",
-    "timestamp": "2026-06-03T04:53:35",
+    "type": "api",
+    "message": "Asterix & Obelix XXL 3: The Crystal Menhir",
+    "detail": "Source : IGDB",
+    "filename": "EP4295-CUSA16983_00-ASTERIXXXL3EUR00",
+    "timestamp": "2026-06-03T15:10:07",
     "extra": {
-      "title_id": "CUSA08519",
-      "pkg_type": "dlc",
-      "filepath": "f:\\ps4 jailbreak\\games\\red dead redemption 2\\dlc\\cusa08519_red_dead_redemption_2_preorder_bonus_dlc_fxd.pkg"
+      "content_id": "EP4295-CUSA16983_00-ASTERIXXXL3EUR00",
+      "source": "IGDB"
     }
   },
   {
-    "type": "scan",
-    "message": "Red Dead Redemption 2: Special Edition Content",
-    "detail": "DLC · CUSA08519 · 1.1 Mo",
-    "filename": "cusa08519_red_dead_redemption_2_special_edition_content_dlc_fxd.pkg",
-    "timestamp": "2026-06-03T04:53:35",
+    "type": "api",
+    "message": "LEGO Party!",
+    "detail": "Source : IGDB",
+    "filename": "HB1567-CUSA53974_00-LEGOPARTYSIEJA00_ed088f",
+    "timestamp": "2026-06-03T15:10:10",
     "extra": {
-      "title_id": "CUSA08519",
-      "pkg_type": "dlc",
-      "filepath": "f:\\ps4 jailbreak\\games\\red dead redemption 2\\dlc\\cusa08519_red_dead_redemption_2_special_edition_content_dlc_fxd.pkg"
+      "content_id": "HB1567-CUSA53974_00-LEGOPARTYSIEJA00_ed088f",
+      "source": "IGDB"
     }
   },
   {
-    "type": "scan",
+    "type": "api",
+    "message": "Rabbids: Party of Legends",
+    "detail": "Source : IGDB",
+    "filename": "EP0001-CUSA27236_00-GAME000000000000",
+    "timestamp": "2026-06-03T15:10:14",
+    "extra": {
+      "content_id": "EP0001-CUSA27236_00-GAME000000000000",
+      "source": "IGDB"
+    }
+  },
+  {
+    "type": "api",
     "message": "Red Dead Redemption 2",
-    "detail": "Jeu · CUSA08519 · 79.4 Go",
-    "filename": "[spsx]-red.dead.redemption.2_cusa08519_v1.00_[6.72]_opoisso893.pkg",
-    "timestamp": "2026-06-03T04:53:35",
+    "detail": "Source : IGDB",
+    "filename": "EP1004-CUSA08519_00-REDEMPTION000002",
+    "timestamp": "2026-06-03T15:10:18",
     "extra": {
-      "title_id": "CUSA08519",
-      "pkg_type": "game",
-      "filepath": "f:\\ps4 jailbreak\\games\\red dead redemption 2\\game\\[spsx]-red.dead.redemption.2_cusa08519_v1.00_[6.72]_opoisso893.pkg"
+      "content_id": "EP1004-CUSA08519_00-REDEMPTION000002",
+      "source": "IGDB"
     }
   },
   {
-    "type": "scan",
-    "message": "Red Dead Redemption 2",
-    "detail": "Mise à jour · CUSA08519 · 19.2 Go",
-    "filename": "cusa08519_v1.32_[6.72]_opoisso893-[dlpsgame.com].pkg",
-    "timestamp": "2026-06-03T04:53:35",
+    "type": "api",
+    "message": "The Smurfs: Village Party",
+    "detail": "Source : IGDB",
+    "filename": "EP4295-CUSA47540_00-SMURFSPARTYPS4EU_55a5b8",
+    "timestamp": "2026-06-03T15:10:21",
     "extra": {
-      "title_id": "CUSA08519",
-      "pkg_type": "update",
-      "filepath": "f:\\ps4 jailbreak\\games\\red dead redemption 2\\update\\cusa08519_v1.32_[6.72]_opoisso893-[dlpsgame.com].pkg"
+      "content_id": "EP4295-CUSA47540_00-SMURFSPARTYPS4EU_55a5b8",
+      "source": "IGDB"
+    }
+  },
+  {
+    "type": "api",
+    "message": "Uncharted 4: A Thief's End",
+    "detail": "Source : IGDB",
+    "filename": "EP9000-CUSA00917_00-UNCHARTED4000000",
+    "timestamp": "2026-06-03T15:10:25",
+    "extra": {
+      "content_id": "EP9000-CUSA00917_00-UNCHARTED4000000",
+      "source": "IGDB"
     }
   }
 ]

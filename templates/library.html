@@ -43,7 +43,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 44px;
+  font-size: 36px;
+  color: var(--accent);
+  opacity: 0.6;
 }
 .cover img {
   position: absolute;
@@ -139,7 +141,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 18px;
+  color: var(--accent);
+  opacity: 0.7;
 }
 .list-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -179,6 +183,9 @@
   white-space: nowrap;
   flex-shrink: 0;
   min-width: 70px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .list-size {
   font-size: 11px;
@@ -243,6 +250,7 @@
   gap: 8px;
   transition: background 0.1s;
 }
+.ctx-item i { width: 14px; text-align: center; }
 .ctx-item:hover { background: var(--accent-l); color: var(--accent); }
 .ctx-item.danger { color: var(--error); }
 .ctx-item.danger:hover { background: #fff5f5; }
@@ -258,16 +266,9 @@
 }
 
 @keyframes cardAppear {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-
 .pkg-card.scanning {
   animation: cardAppear 0.3s ease forwards;
 }
@@ -279,12 +280,12 @@
 
   {% if packages %}
 
-  <!-- VUE GRILLE — vide, remplie par JS -->
+  <!-- VUE GRILLE -->
   <div class="grid" id="view-grid"
        style="display: {% if view_mode == 'list' %}none{% else %}grid{% endif %};">
   </div>
 
-  <!-- VUE LISTE — vide, remplie par JS -->
+  <!-- VUE LISTE -->
   <div id="view-list"
        style="display: {% if view_mode == 'list' %}block{% else %}none{% endif %};">
     <div class="list-header">
@@ -298,16 +299,14 @@
     <div class="list-view" id="view-list-body"></div>
   </div>
 
-  <!-- Sentinel scroll infini -->
-  <div id="scroll-sentinel"
-       style="height:1px; margin-top:20px;"></div>
+  <div id="scroll-sentinel" style="height:1px; margin-top:20px;"></div>
 
   {% else %}
   <div class="empty-state">
-    <div class="empty-icon">📦</div>
+    <div class="empty-icon"><i class="fa-solid fa-box-open" style="font-size:64px; color:var(--th);"></i></div>
     <div class="empty-title">Bibliothèque vide</div>
     <div class="empty-sub">
-      Cliquez sur ➕ Ajouter un dossier<br>
+      Cliquez sur <i class="fa-solid fa-plus"></i> Ajouter un dossier<br>
       pour scanner vos fichiers PKG
     </div>
   </div>
@@ -315,18 +314,19 @@
 
 </div>
 
-<!-- Context menu inchangé -->
+<!-- Context menu -->
 <div class="ctx-menu" id="ctx-menu">
   <div class="ctx-title" id="ctx-title">Titre</div>
   <div class="ctx-sep"></div>
-  <div class="ctx-item" onclick="ctxAction('open_folder')">📁 Ouvrir le dossier</div>
-  <div class="ctx-item" onclick="ctxAction('copy_path')">📋 Copier le chemin</div>
-  <div class="ctx-item" onclick="ctxAction('copy_cid')">🔑 Copier le Content-ID</div>
+  <div class="ctx-item" onclick="ctxAction('open_folder')"><i class="fa-solid fa-folder-open"></i> Ouvrir le dossier</div>
+  <div class="ctx-item" onclick="ctxAction('copy_path')"><i class="fa-solid fa-copy"></i> Copier le chemin</div>
+  <div class="ctx-item" onclick="ctxAction('copy_cid')"><i class="fa-solid fa-key"></i> Copier le Content-ID</div>
   <div class="ctx-sep"></div>
-  <div class="ctx-item" onclick="ctxAction('rename')">✏️ Renommer</div>
+  <div class="ctx-item" onclick="ctxAction('rename')"><i class="fa-solid fa-pen"></i> Renommer</div>
   <div class="ctx-sep"></div>
-  <div class="ctx-item danger" onclick="ctxAction('delete')">🗑️ Supprimer</div>
+  <div class="ctx-item danger" onclick="ctxAction('delete')"><i class="fa-solid fa-trash"></i> Supprimer</div>
 </div>
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -339,7 +339,14 @@ var _viewMode         = '{{ view_mode }}';
 var _PAGE_SIZE        = 50;
 var _loadedUp         = 0;
 
-// ── Filtre combiné type + recherche ───────────────────────────
+// Icônes FA par type (pour placeholder cover et list-thumb)
+var TYPE_ICONS_FA = {
+    game:     '<i class="fa-solid fa-gamepad"></i>',
+    dlc:      '<i class="fa-solid fa-puzzle-piece"></i>',
+    update:   '<i class="fa-solid fa-arrow-up"></i>',
+    backport: '<i class="fa-solid fa-clock-rotate-left"></i>',
+};
+
 function _applyFilters(searchText) {
     var q      = (searchText || '').toLowerCase().trim();
     var result = _packages.slice();
@@ -363,7 +370,6 @@ function _applyFilters(searchText) {
     return result;
 }
 
-// ── Init — applique filtre type + recherche initiale ──────────
 (function() {
     var input = document.getElementById('search-input');
     var text  = input ? input.value : '';
@@ -378,7 +384,8 @@ function _renderNextBatch() {
     var list = document.getElementById('view-list-body');
 
     batch.forEach(function(pkg, i) {
-        var index = _loadedUp + i;
+        var index   = _loadedUp + i;
+        var typeIcon = TYPE_ICONS_FA[pkg.type] || '<i class="fa-solid fa-box"></i>';
 
         if (grid) {
             var card = document.createElement('div');
@@ -389,7 +396,7 @@ function _renderNextBatch() {
 
             var cover = pkg.cover_path
                 ? '<img src="file:///' + pkg.cover_path + '" alt="' + esc(pkg.title) + '" />'
-                : '<div class="cover-inner">' + (pkg.type_icon || '🎮') + '</div>';
+                : '<div class="cover-inner">' + typeIcon + '</div>';
 
             var fw = pkg.firmware
                 ? '<span class="fw-badge">FW ' + pkg.firmware + '</span>'
@@ -422,7 +429,11 @@ function _renderNextBatch() {
 
             var thumb = pkg.cover_path
                 ? '<img src="file:///' + pkg.cover_path + '" alt="" />'
-                : (pkg.type_icon || '🎮');
+                : typeIcon;
+
+            var fwHtml = pkg.firmware
+                ? '<i class="fa-solid fa-shield" style="font-size:10px;color:var(--accent);opacity:0.6;"></i> FW ' + pkg.firmware
+                : '—';
 
             row.innerHTML =
                 '<div class="list-thumb cover-bg-' + pkg.type + '">' + thumb + '</div>' +
@@ -431,9 +442,9 @@ function _renderNextBatch() {
                     '<div class="list-title-main">' + esc(pkg.title_api || pkg.title) + '</div>' +
                     '<div class="list-title-sub">'  + esc(pkg.content_id || '')       + '</div>' +
                 '</div>' +
-                '<div class="list-fw">'     + (pkg.firmware ? '🛡 FW ' + pkg.firmware : '—') + '</div>' +
-                '<div class="list-size">'   + esc(pkg.size_str) + '</div>' +
-                '<div class="list-region">' + esc(pkg.region)   + '</div>';
+                '<div class="list-fw">'     + fwHtml              + '</div>' +
+                '<div class="list-size">'   + esc(pkg.size_str)   + '</div>' +
+                '<div class="list-region">' + esc(pkg.region)     + '</div>';
 
             list.appendChild(row);
         }
@@ -502,7 +513,6 @@ function onSearchInput(text) {
     if (list) list.innerHTML = '';
 
     _renderNextBatch();
-
     _callBridge(function(b) { b.search(text); });
 }
 

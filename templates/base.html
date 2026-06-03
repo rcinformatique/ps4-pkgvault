@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<link rel="stylesheet" href="file:///{{ fa_path }}">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -113,7 +114,7 @@ html, body {
   gap: 1px;
   flex-shrink: 1;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .nav-tab {
@@ -130,10 +131,14 @@ html, body {
   font-family: 'Segoe UI', Arial, sans-serif;
   transition: all 0.15s;
   white-space: nowrap;
-  flex-shrink: 1;
+  flex-shrink: 0;
 }
 .nav-tab:hover { background: var(--input); color: var(--ts); }
+.nav-tab i, .mobile-menu-item i { width: 16px; text-align: center; }
 .nav-tab.active { background: var(--accent-l); color: var(--accent); font-weight: 500; }
+
+/* Texte des onglets masqué en petite fenêtre */
+.nav-tab .tab-label { display: inline; }
 
 .search-wrap {
   background: var(--input);
@@ -143,7 +148,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 120px;
+  min-width: 80px;
   max-width: 200px;
   flex: 1;
   margin-left: auto;
@@ -179,6 +184,92 @@ html, body {
   flex-shrink: 0;
 }
 .btn-add:hover { background: var(--accent-h); }
+.btn-add .btn-add-label { display: inline; }
+
+/* ── RESPONSIVE TOPBAR ── */
+
+.hamburger-btn {
+  display: none;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  color: var(--ts);
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  font-size: 18px;
+  padding: 0;
+}
+.hamburger-btn:hover {
+  background: var(--accent-l);
+  color: var(--accent);
+  border-color: var(--accent-b);
+}
+
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 52px;
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  z-index: 999;
+  flex-direction: column;
+  padding: 8px;
+  gap: 2px;
+}
+.mobile-menu.open { display: flex; }
+
+.mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ts);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s;
+}
+.mobile-menu-item:hover { background: var(--input); color: var(--tp); }
+.mobile-menu-item.active { background: var(--accent-l); color: var(--accent); font-weight: 600; }
+.mobile-menu-sep {
+  height: 1px;
+  background: var(--border-l);
+  margin: 4px 6px;
+}
+
+/* Fenêtre < 1100px : labels des onglets masqués, icône seulement */
+@media (max-width: 1100px) {
+  .nav-tab .tab-label { display: none; }
+  .nav-tab { padding: 5px 8px; gap: 0; }
+}
+
+/* Fenêtre < 920px : texte boutons masqués */
+@media (max-width: 920px) {
+  .btn-add .btn-add-label { display: none; }
+  .btn-api-label { display: none; }
+  .btn-export-label { display: none; }
+}
+
+/* Fenêtre < 780px : nav-tabs masqués, hamburger visible, boutons secondaires masqués */
+@media (max-width: 780px) {
+  .nav-tabs       { display: none; }
+  .hamburger-btn  { display: flex; }
+  #btn-fetch-api  { display: none !important; }
+  #btn-export     { display: none !important; }
+}
 
 /* SUBBAR */
 .subbar {
@@ -334,39 +425,47 @@ html, body {
 
   <!-- TOPBAR -->
   <div class="topbar">
-    <div class="logo">📦 PS4 PKG<span class="accent">Vault</span></div>
+    <div class="logo"><i class="fa-solid fa-box"></i> PS4 PKG<span class="accent">Vault</span></div>
 
     <button id="back-btn" onclick="_callBridge(function(b){ b.go_back(); })">
-      ← Retour
+      <i class="fa-solid fa-arrow-left"></i> Retour
     </button>
 
     <nav class="nav-tabs">
       <button class="nav-tab {% if active_page == 'library' %}active{% endif %}"
-              onclick="_callBridge(function(b){ b.navigate('library'); })">
-        🗂️ Bibliothèque
+              onclick="_callBridge(function(b){ b.navigate('library'); })"
+              title="Bibliothèque">
+        <i class="fa-solid fa-layer-group"></i> <span class="tab-label">Bibliothèque</span>
       </button>
       <button class="nav-tab {% if active_page == 'folders' %}active{% endif %}"
-              onclick="_callBridge(function(b){ b.navigate('folders'); })">
-        📁 Dossiers
+              onclick="_callBridge(function(b){ b.navigate('folders'); })"
+              title="Dossiers">
+        <i class="fa-solid fa-folder"></i> <span class="tab-label">Dossiers</span>
       </button>
       <button class="nav-tab {% if active_page == 'settings' %}active{% endif %}"
-              onclick="_callBridge(function(b){ b.navigate('settings'); })">
-        ⚙️ Paramètres
+              onclick="_callBridge(function(b){ b.navigate('settings'); })"
+              title="Paramètres">
+        <i class="fa-solid fa-gear"></i> <span class="tab-label">Paramètres</span>
       </button>
       <button class="nav-tab {% if active_page == 'credits' %}active{% endif %}"
-              onclick="_callBridge(function(b){ b.navigate('credits'); })">
-        ℹ️ À propos
+              onclick="_callBridge(function(b){ b.navigate('credits'); })"
+              title="À propos">
+        <i class="fa-solid fa-circle-info"></i> <span class="tab-label">À propos</span>
       </button>
-
       <button class="nav-tab {% if active_page == 'activity' %}active{% endif %}"
-              onclick="_callBridge(function(b){ b.navigate('activity'); })">
-        📋 Activité
+              onclick="_callBridge(function(b){ b.navigate('activity'); })"
+              title="Activité">
+        <i class="fa-solid fa-clock-rotate-left"></i> <span class="tab-label">Activité</span>
       </button>
-
     </nav>
 
+    <!-- Bouton hamburger (petite fenêtre) -->
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileMenu()" title="Menu">
+      <i class="fa-solid fa-bars" id="hamburger-icon"></i>
+    </button>
+
     <div class="search-wrap">
-      <span style="color:var(--th); font-size:14px;">🔍</span>
+      <i class="fa-solid fa-magnifying-glass" style="color:var(--th); font-size:13px; flex-shrink:0;"></i>
       <input type="text" id="search-input" placeholder="Rechercher un titre, CUSA…" value="{{ search_text }}" oninput="onSearchInput(this.value)"  />
     </div>
 
@@ -375,21 +474,22 @@ html, body {
         title="Basculer thème clair/sombre"
         style="
         background: var(--input);
-        border: 1px solid var(--border);
-        border-radius: var(--r-md);
-        color: var(--ts);
-        font-size: 16px;
-        width: 34px;
-        height: 34px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        transition: all 0.15s;"
+            border: 1px solid var(--border);
+            border-radius: var(--r-md);
+            color: var(--ts);
+            font-size: 12px;
+            padding: 6px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            flex-shrink: 0;
+            transition: all 0.15s;"
         onmouseover="this.style.background='var(--accent-l)'; this.style.color='var(--accent)';"
         onmouseout="this.style.background='var(--input)'; this.style.color='var(--ts)';">
-  🌙
+  <i class="fa-solid fa-moon" id="theme-icon"></i>
 </button>
 
     <button id="btn-fetch-api"
@@ -412,7 +512,7 @@ html, body {
             transition: all 0.15s;"
             onmouseover="this.style.background='var(--accent-l)'; this.style.color='var(--accent)'; this.style.borderColor='var(--accent-b)';"
             onmouseout="this.style.background='var(--input)'; this.style.color='var(--ts)'; this.style.borderColor='var(--border)';">
-      🔄 Données API
+      <i class="fa-solid fa-rotate"></i> <span class="btn-api-label">Données API</span>
     </button>
 
     <button id="btn-export"
@@ -435,7 +535,7 @@ html, body {
         transition: all 0.15s;"
         onmouseover="this.style.background='var(--accent-l)'; this.style.color='var(--accent)'; this.style.borderColor='var(--accent-b)';"
         onmouseout="this.style.background='var(--input)'; this.style.color='var(--ts)'; this.style.borderColor='var(--border)';">
-  📤 Exporter
+  <i class="fa-solid fa-file-export"></i> <span class="btn-export-label">Exporter</span>
 </button>
 
 <!-- Menu export -->
@@ -465,7 +565,7 @@ html, body {
     transition: background 0.1s;
   " onmouseover="this.style.background='var(--accent-l)'; this.style.color='var(--accent)';"
      onmouseout="this.style.background=''; this.style.color='var(--tp)';">
-    📋 Exporter en JSON
+    <i class="fa-solid fa-file-code"></i> Exporter en JSON
   </div>
   <div onclick="doExport('csv')" style="
     padding: 8px 14px;
@@ -480,13 +580,47 @@ html, body {
     transition: background 0.1s;
   " onmouseover="this.style.background='var(--accent-l)'; this.style.color='var(--accent)';"
      onmouseout="this.style.background=''; this.style.color='var(--tp)';">
-    📊 Exporter en CSV
+    <i class="fa-solid fa-file-csv"></i> Exporter en CSV
   </div>
 </div>
 
     <button class="btn-add"
-      onclick="_callBridge(function(b){ b.add_folder(); })">
-      ➕ Ajouter un dossier
+      onclick="_callBridge(function(b){ b.add_folder(); })"
+      title="Ajouter un dossier">
+      <i class="fa-solid fa-plus"></i> <span class="btn-add-label">Ajouter un dossier</span>
+    </button>
+  </div>
+
+  <!-- MENU MOBILE -->
+  <div class="mobile-menu" id="mobile-menu">
+    <button class="mobile-menu-item {% if active_page == 'library' %}active{% endif %}"
+            onclick="closeMobileMenu(); _callBridge(function(b){ b.navigate('library'); })">
+      <i class="fa-solid fa-layer-group"></i> Bibliothèque
+    </button>
+    <button class="mobile-menu-item {% if active_page == 'folders' %}active{% endif %}"
+            onclick="closeMobileMenu(); _callBridge(function(b){ b.navigate('folders'); })">
+      <i class="fa-solid fa-folder"></i> Dossiers
+    </button>
+    <button class="mobile-menu-item {% if active_page == 'settings' %}active{% endif %}"
+            onclick="closeMobileMenu(); _callBridge(function(b){ b.navigate('settings'); })">
+      <i class="fa-solid fa-gear"></i> Paramètres
+    </button>
+    <button class="mobile-menu-item {% if active_page == 'credits' %}active{% endif %}"
+            onclick="closeMobileMenu(); _callBridge(function(b){ b.navigate('credits'); })">
+      <i class="fa-solid fa-circle-info"></i> À propos
+    </button>
+    <button class="mobile-menu-item {% if active_page == 'activity' %}active{% endif %}"
+            onclick="closeMobileMenu(); _callBridge(function(b){ b.navigate('activity'); })">
+      <i class="fa-solid fa-clock-rotate-left"></i> Activité
+    </button>
+    <div class="mobile-menu-sep"></div>
+    <button class="mobile-menu-item"
+            onclick="closeMobileMenu(); _callBridge(function(b){ b.fetch_api(); })">
+      <i class="fa-solid fa-rotate"></i> <span class="btn-api-label">Données API</span>
+    </button>
+    <button class="mobile-menu-item"
+            onclick="closeMobileMenu(); showExportMenu()">
+      <i class="fa-solid fa-file-export"></i> Exporter
     </button>
   </div>
 
@@ -630,7 +764,8 @@ function toggleTheme() {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   var btn = document.getElementById('btn-theme');
-  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  var icon = document.getElementById('theme-icon');
+  if (icon) icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
   _theme = theme;
 }
 
@@ -682,6 +817,37 @@ document.addEventListener('click', function(e) {
   var btn  = document.getElementById('btn-export');
   if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
     menu.style.display = 'none';
+  }
+});
+
+// ── Menu mobile hamburger ───────────────────────────────────────
+function toggleMobileMenu() {
+  var menu = document.getElementById('mobile-menu');
+  var btn  = document.getElementById('hamburger-btn');
+  if (menu.classList.contains('open')) {
+    menu.classList.remove('open');
+    var icon = document.getElementById('hamburger-icon'); if(icon){ icon.className='fa-solid fa-bars'; }
+  } else {
+    menu.classList.add('open');
+    var icon = document.getElementById('hamburger-icon'); if(icon){ icon.className='fa-solid fa-xmark'; }
+  }
+}
+
+function closeMobileMenu() {
+  var menu = document.getElementById('mobile-menu');
+  var btn  = document.getElementById('hamburger-btn');
+  if (menu) menu.classList.remove('open');
+  var icon = document.getElementById('hamburger-icon'); if(icon){ icon.className='fa-solid fa-bars'; }
+}
+
+// Ferme le menu mobile si clic ailleurs
+document.addEventListener('click', function(e) {
+  var menu = document.getElementById('mobile-menu');
+  var btn  = document.getElementById('hamburger-btn');
+  if (menu && btn && menu.classList.contains('open')) {
+    if (!menu.contains(e.target) && !btn.contains(e.target)) {
+      closeMobileMenu();
+    }
   }
 });
 
