@@ -360,5 +360,17 @@
       "pkg_type": "dlc",
       "filepath": "f:\\ps4 jailbreak\\games\\uncharted 4 a thiefs end\\dlc\\cusa00917_uncharted_the_lost_legacy_mp_unlock_dlc_fix.pkg"
     }
+  },
+  {
+    "type": "scan",
+    "message": "Uncharted 4: A Thief’s End",
+    "detail": "Jeu · CUSA00917 · 23.1 Go",
+    "filename": "u4ate_00917-duplex-[dlpsgame.com].pkg",
+    "timestamp": "2026-06-03T03:22:15",
+    "extra": {
+      "title_id": "CUSA00917",
+      "pkg_type": "game",
+      "filepath": "f:\\ps4 jailbreak\\games\\uncharted 4 a thiefs end\\game\\u4ate_00917-duplex-[dlpsgame.com].pkg"
+    }
   }
 ]

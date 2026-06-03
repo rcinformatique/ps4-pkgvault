@@ -99,18 +99,19 @@ class TemplateEngine:
         return self._env.get_template(template_name).render(**context)
 
     def render_library(
-        self,
-        packages: list[dict],
-        stats: dict = None,
-        active_filter: str = "all",
-        active_sort: str = "title",
-        last_scan: str = "",
-        active_folder: str = "",
-        status_msg: str = "Prêt",
-        count_str: str = "",
-        view_mode: str = "grid",
-        card_min_width: int = 180,
-        theme: str = "light",
+            self,
+            packages: list[dict],
+            stats: dict = None,
+            active_filter: str = "all",
+            active_sort: str = "title",
+            last_scan: str = "",
+            active_folder: str = "",
+            status_msg: str = "Prêt",
+            count_str: str = "",
+            view_mode: str = "grid",
+            card_min_width: int = 180,
+            theme: str = "light",
+            search_text: str = "",
     ) -> str:
         s = stats or DEFAULT_STATS
         if not count_str:
@@ -128,6 +129,7 @@ class TemplateEngine:
             "active_folder":  active_folder,
             "view_mode":      view_mode,
             "card_min_width": card_min_width,
+            "search_text": search_text,
         })
         return self._render("library.html", ctx)
 
