@@ -17,7 +17,7 @@ avec une interface moderne inspirée du Microsoft Store / Windows 11.
 - Détection automatique du type : BASE / DLC / UPDATE / BACKPORT
 - Affichage en grille 4 colonnes avec jaquettes HD
 - Extraction automatique de `icon0.png` depuis le PKG
-- Téléchargement de jaquettes via PS Store et RAWG.io
+- Téléchargement de jaquettes via PS Store et IGDB dans l’application principale
 - Base de données SQLite locale (persistance entre sessions)
 - Page de détail complète : description, genres, screenshots, langues, firmware
 - Relations automatiques jeu BASE ↔ DLC ↔ UPDATE
@@ -36,7 +36,8 @@ avec une interface moderne inspirée du Microsoft Store / Windows 11.
 | SQLite | 3.x | Base de données locale |
 | Pillow | 10.x | Traitement des images |
 | Requests | 2.x | Appels API HTTP |
-| RAWG API | v2 | Métadonnées des jeux |
+| IGDB API | v4 | Métadonnées des jeux dans l’application principale |
+| RAWG API | v2 | Métadonnées via l’outil CLI `tools/api_pkg.py` |
 | PS Store API | — | Jaquettes officielles |
 
 ---
@@ -85,7 +86,7 @@ PKGVault/
 │   ├── database.py         ← Base de données SQLite
 │   ├── settings.py         ← Persistance des préférences
 │   ├── cover_loader.py     ← Extraction icon0.png
-│   └── api_client.py       ← PS Store + RAWG + IGDB
+│   └── api_client.py       ← IGDB pour les métadonnées
 ├── ui/
 │   ├── __init__.py
 │   ├── main_window.py      ← Fenêtre principale
@@ -103,8 +104,8 @@ PKGVault/
 │       ├── pkg_card.py     ← Carte jaquette
 │       └── status_bar.py   ← Barre de statut
 ├── main.py                 ← Point d'entrée
-├── pkgvault.db             ← Base de données (généré)
-├── settings.json           ← Préférences (généré)
+├── ps4pkgvault.db          ← Base de données locale (généré, ignoré par Git)
+├── settings.json           ← Préférences (généré, ignoré par Git)
 └── requirements.txt
 ```
 
@@ -161,24 +162,25 @@ PKGVault/
 
 ## APIs externes
 
-### RAWG.io
+### IGDB
 
-- URL : https://rawg.io/apidocs
-- Inscription gratuite
-- Fournit : titre, description, genres, rating, date de sortie, screenshots
-- Clé à renseigner dans Paramètres → APIs
+- Utilisé par l’application principale via `core/api_client.py`
+- URL : https://api.igdb.com
+- Requiert un compte Twitch Developer gratuit
+- Fournit : titre, description, genres, date de sortie, développeur, éditeur, jaquette, screenshots et vidéos
+- Identifiants à renseigner dans les paramètres de l’application
 
 ### PlayStation Store
 
 - Pas de clé requise
-- Fournit : jaquette officielle haute résolution
-- URL : `https://store.playstation.com/store/api/chihiro/...`
+- Utilisé en priorité pour certaines jaquettes officielles quand disponible
 
-### IGDB (optionnel)
+### RAWG.io
 
-- URL : https://api.igdb.com
-- Requiert un compte Twitch Developer (gratuit)
-- Fournit : vidéos, artworks, infos avancées
+- Utilisé par l’outil CLI `tools/api_pkg.py`
+- URL : https://rawg.io/apidocs
+- Fournit : titre, description, genres, rating, date de sortie et screenshots
+- La jaquette RAWG est téléchargée uniquement si aucune jaquette locale extraite du PKG n’existe
 
 ---
 
@@ -190,11 +192,11 @@ PKGVault/
 |---|---|---|
 | `content_id` | TEXT UNIQUE | Identifiant unique PS4 |
 | `title` | TEXT | Titre depuis param.sfo |
-| `title_api` | TEXT | Titre depuis RAWG |
+| `title_api` | TEXT | Titre depuis l’API externe |
 | `type` | TEXT | game / dlc / update / backport |
 | `firmware` | TEXT | Firmware minimum |
 | `cover_path` | TEXT | Chemin local jaquette |
-| `description` | TEXT | Description RAWG |
+| `description` | TEXT | Description depuis l’API externe |
 | `genres` | TEXT | JSON array |
 | `languages` | TEXT | JSON array |
 | `api_fetched` | INTEGER | 0 = pas encore appelé |
@@ -230,7 +232,7 @@ Site : rc-informatique.fr
 
 - Interface développée avec l'assistance de **Claude** (Anthropic)
 - Design inspiré de **Windows 11 / Microsoft Store**
-- Données de jeux via **RAWG.io**
+- Données de jeux via **IGDB** dans l’application principale
 - Jaquettes via **PlayStation Store**
 
 ---
