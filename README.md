@@ -41,7 +41,7 @@ avec une interface moderne inspirée du Microsoft Store / Windows 11.
 - Extraction automatique de `icon0.png` depuis le PKG
 - Récupération automatique des métadonnées via **IGDB** (jeux BASE uniquement)
 - Propagation automatique des données IGDB aux DLC liés via le CUSA commun
-- Jaquettes officielles via **PlayStation Store**
+- Téléchargement automatique des jaquettes HD via **IGDB**
 - Base de données SQLite locale (persistance entre sessions)
 - Page de détail complète : description, genres, screenshots, langues, firmware, contenu associé
 - Relations automatiques jeu BASE ↔ DLC ↔ UPDATE
@@ -67,11 +67,10 @@ avec une interface moderne inspirée du Microsoft Store / Windows 11.
 | Jinja2 | 3.x | Moteur de templates HTML |
 | Pillow | 12.x | Traitement des images |
 | Requests | 2.x | Appels API HTTP |
-| IGDB API | v4 | Métadonnées des jeux |
+| IGDB API | v4 | Métadonnées et jaquettes |
 | Twitch OAuth | v2 | Authentification IGDB |
-| PS Store API | — | Jaquettes officielles |
-| Font Awesome | 6 Free | Icônes de l'interface |
-| PyInstaller | 6.x | Compilation en .exe |
+| Font Awesome | 6 Free | Icônes |
+| PyInstaller | 6.x | Compilation EXE |
 
 ---
 
@@ -238,11 +237,6 @@ PKGVault/
 - Fournit : titre, description, genres, date de sortie, développeur, éditeur, jaquette, screenshots
 - Traite les jeux **BASE** uniquement — les données sont ensuite propagées aux **DLC** liés
 
-### PlayStation Store
-
-- Pas de clé requise
-- Utilisé pour les jaquettes officielles
-
 ---
 
 ## Base de données
@@ -282,10 +276,9 @@ PKGVault/
 
 ## Développeur
 
-**Sébastien** — RC Informatique
-6 Place des Halles, 03000 Moulins (Allier), France
-Téléphone : 04 70 44 39 36 / 06 51 97 55 42
-Site : [rc-informatique.fr](https://rc-informatique.fr)
+**Sébastien Etienne** — RC Informatique  
+🌐 https://rc-informatique.fr  
+🐙 https://github.com/rcinformatique
 
 ---
 
@@ -294,16 +287,21 @@ Site : [rc-informatique.fr](https://rc-informatique.fr)
 - Interface développée avec l'assistance de **Claude** (Anthropic) — Sonnet 4.6
 - Design inspiré de **Windows 11 / Microsoft Store / Fluent Design**
 - Données de jeux via **IGDB**
-- Jaquettes via **PlayStation Store**
+- Métadonnées, jaquettes et screenshots via **IGDB**
 - Icônes via **Font Awesome 6 Free**
 
 ---
 
 ## Licence
 
-Usage personnel uniquement.
-Ce logiciel n'encourage aucune violation des droits d'auteur.
-Les fichiers PKG utilisés doivent provenir de jeux dont vous êtes propriétaire.
+PKGVault est distribué sous la licence GNU General Public License v3.0 (GPL-3.0).
+
+Vous êtes libre d'utiliser, modifier et redistribuer ce logiciel conformément aux termes de la licence GPL v3.
+
+Voir le fichier LICENSE pour plus d'informations.
+
+Ce projet n'encourage aucune violation des droits d'auteur.
+Les fichiers PKG utilisés doivent provenir de contenus que vous êtes légalement autorisé à utiliser.
 
 ---
 
