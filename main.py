@@ -8,7 +8,7 @@ from ui.theme import APP_STYLE, Fonts
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("PS4 PKGVault")
-    app.setApplicationVersion("1.0.0")
+    app.setApplicationVersion("1.1.0")
     app.setOrganizationName("RC Informatique")
 
     # Police globale Segoe UI

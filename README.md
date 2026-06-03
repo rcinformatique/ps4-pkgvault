@@ -1,8 +1,30 @@
 # PKGVault
 
+![Version](https://img.shields.io/github/v/release/rcinformatique/ps4-pkgvault)
+![Python](https://img.shields.io/badge/Python-3.13-blue)
+![Platform](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-green)
+
 **Gestionnaire de fichiers PKG PS4** — interface Windows 11, base de données locale, jaquettes HD.
 
 ---
+### Captures d'écran
+
+### Bibliothèque
+
+| Thème clair | Thème sombre |
+|------------|------------|
+| ![Bibliothèque claire](docs/images/library-light.png) | ![Bibliothèque sombre](docs/images/library-dark.png) |
+
+### Détails d'un jeu
+
+| Thème clair | Thème sombre |
+|------------|------------|
+| ![Détails clair](docs/images/details-light.png) | ![Détails sombre](docs/images/details-dark.png) |
+
+### Paramètres
+
+![Paramètres](docs/images/settings.png)
+
 
 ## Présentation
 
