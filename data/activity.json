@@ -276,5 +276,89 @@
       "content_id": "EP1004-CUSA08519_00-REDEMPTION000002",
       "source": "IGDB"
     }
+  },
+  {
+    "type": "scan",
+    "message": "Uncharted 4: Desert Weapon Skin",
+    "detail": "DLC · CUSA00917 · 128.0 Ko",
+    "filename": "cusa00917_uncharted_4_desert_weapon_skin_dlc_fix.pkg",
+    "timestamp": "2026-06-03T03:00:41",
+    "extra": {
+      "title_id": "CUSA00917",
+      "pkg_type": "dlc",
+      "filepath": "f:\\ps4 jailbreak\\games\\uncharted 4 a thiefs end\\dlc\\cusa00917_uncharted_4_desert_weapon_skin_dlc_fix.pkg"
+    }
+  },
+  {
+    "type": "scan",
+    "message": "Uncharted 4: Golden Weapon Skin",
+    "detail": "DLC · CUSA00917 · 128.0 Ko",
+    "filename": "cusa00917_uncharted_4_golden_weapon_skin_dlc_fix.pkg",
+    "timestamp": "2026-06-03T03:00:41",
+    "extra": {
+      "title_id": "CUSA00917",
+      "pkg_type": "dlc",
+      "filepath": "f:\\ps4 jailbreak\\games\\uncharted 4 a thiefs end\\dlc\\cusa00917_uncharted_4_golden_weapon_skin_dlc_fix.pkg"
+    }
+  },
+  {
+    "type": "scan",
+    "message": "Uncharted 4: Heist Drake",
+    "detail": "DLC · CUSA00917 · 128.0 Ko",
+    "filename": "cusa00917_uncharted_4_heist_drake_skin_dlc_fix.pkg",
+    "timestamp": "2026-06-03T03:00:41",
+    "extra": {
+      "title_id": "CUSA00917",
+      "pkg_type": "dlc",
+      "filepath": "f:\\ps4 jailbreak\\games\\uncharted 4 a thiefs end\\dlc\\cusa00917_uncharted_4_heist_drake_skin_dlc_fix.pkg"
+    }
+  },
+  {
+    "type": "scan",
+    "message": "Uncharted 4: Phurba Dagger Taunt",
+    "detail": "DLC · CUSA00917 · 128.0 Ko",
+    "filename": "cusa00917_uncharted_4_phurba_dagger_taunt_dlc_fix.pkg",
+    "timestamp": "2026-06-03T03:00:41",
+    "extra": {
+      "title_id": "CUSA00917",
+      "pkg_type": "dlc",
+      "filepath": "f:\\ps4 jailbreak\\games\\uncharted 4 a thiefs end\\dlc\\cusa00917_uncharted_4_phurba_dagger_taunt_dlc_fix.pkg"
+    }
+  },
+  {
+    "type": "scan",
+    "message": "Uncharted 4: Snow Weapon Skin",
+    "detail": "DLC · CUSA00917 · 128.0 Ko",
+    "filename": "cusa00917_uncharted_4_snow_weapon_skin_dlc_fix.pkg",
+    "timestamp": "2026-06-03T03:00:41",
+    "extra": {
+      "title_id": "CUSA00917",
+      "pkg_type": "dlc",
+      "filepath": "f:\\ps4 jailbreak\\games\\uncharted 4 a thiefs end\\dlc\\cusa00917_uncharted_4_snow_weapon_skin_dlc_fix.pkg"
+    }
+  },
+  {
+    "type": "scan",
+    "message": "Uncharted 4: Nathan Drake Skin",
+    "detail": "DLC · CUSA00917 · 128.0 Ko",
+    "filename": "cusa00917_uncharted_4_utf_drake_skin_dlc_fix.pkg",
+    "timestamp": "2026-06-03T03:00:41",
+    "extra": {
+      "title_id": "CUSA00917",
+      "pkg_type": "dlc",
+      "filepath": "f:\\ps4 jailbreak\\games\\uncharted 4 a thiefs end\\dlc\\cusa00917_uncharted_4_utf_drake_skin_dlc_fix.pkg"
+    }
+  },
+  {
+    "type": "scan",
+    "message": "Uncharted: The Lost Legacy Multiplayer Unlock",
+    "detail": "DLC · CUSA00917 · 128.0 Ko",
+    "filename": "cusa00917_uncharted_the_lost_legacy_mp_unlock_dlc_fix.pkg",
+    "timestamp": "2026-06-03T03:00:41",
+    "extra": {
+      "title_id": "CUSA00917",
+      "pkg_type": "dlc",
+      "filepath": "f:\\ps4 jailbreak\\games\\uncharted 4 a thiefs end\\dlc\\cusa00917_uncharted_the_lost_legacy_mp_unlock_dlc_fix.pkg"
+    }
   }
 ]
