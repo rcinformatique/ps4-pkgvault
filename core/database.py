@@ -329,6 +329,17 @@ class Database:
         })
         self._conn.commit()
 
+    def update_filepath(self, old_filepath: str, new_filepath: str, new_filename: str):
+        """Met à jour le chemin et le nom du fichier après renommage."""
+        self._conn.execute("""
+                           UPDATE games
+                           SET filepath = ?,
+                               filename = ?
+                           WHERE filepath = ?
+                           """, (new_filepath, new_filename, old_filepath))
+
+        self._conn.commit()
+
     def update_cover(self, content_id: str, cover_path: str):
         """Met à jour le chemin de la jaquette."""
         # Essaie d'abord par content_id exact

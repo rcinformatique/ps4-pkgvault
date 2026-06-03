@@ -989,25 +989,55 @@ class MainWindow(QMainWindow):
 
     def on_rename(self, filepath: str):
         old_name = os.path.basename(filepath)
+
         new_name, ok = QInputDialog.getText(
-            self, "Renommer le fichier",
-            "Nouveau nom :", text=old_name
+            self,
+            "Renommer le fichier",
+            "Nouveau nom :",
+            text=old_name
         )
-        if not ok or not new_name.strip() or new_name == old_name:
+
+        if not ok or not new_name.strip():
             return
+
+        new_name = new_name.strip()
+
+        if new_name == old_name:
+            return
+
         if not new_name.lower().endswith(".pkg"):
             new_name += ".pkg"
+
         new_path = os.path.join(os.path.dirname(filepath), new_name)
+
+        if os.path.exists(new_path):
+            QMessageBox.warning(
+                self,
+                "Fichier existant",
+                "Un fichier avec ce nom existe déjà."
+            )
+            return
+
         try:
             os.rename(filepath, new_path)
+
             for pkg in self._packages:
                 if pkg.get("filepath") == filepath:
                     pkg["filepath"] = new_path
                     pkg["filename"] = new_name
                     break
-            self._db.delete_by_filepath(filepath)
+
+            self._db.update_filepath(filepath, new_path, new_name)
+
+            self._status_msg = f"Fichier renommé : {new_name}"
+            self._show_library()
+
         except OSError as e:
-            QMessageBox.critical(self, "Erreur", f"Impossible de renommer :\n{e}")
+            QMessageBox.critical(
+                self,
+                "Erreur",
+                f"Impossible de renommer :\n{e}"
+            )
 
     def on_delete(self, filepath: str):
         reply = QMessageBox.warning(
